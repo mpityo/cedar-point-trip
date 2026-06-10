@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0E2A3A">
+<title>Cedar Point · June 13–15</title>
+<style>
+:root{
+  --navy:#0E2A3A; --navy-2:#163A4E; --paper:#FAF8F3; --card:#FFFFFF;
+  --ink:#1A2530; --muted:#5C6B77; --rust:#B5482A; --rust-lt:#F6E4DD;
+  --blue:#2D7DD2; --blue-lt:#E2EEFA;
+  --ok:#1E7A46; --ok-lt:#DDF0E4; --warn:#9A6A00; --warn-lt:#FBEFD2;
+  --bad:#A8321F; --bad-lt:#F9E1DC; --line:#E4DFD6;
+  --r:12px;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+html{font-size:16px}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  line-height:1.5; padding-bottom:40px}
+header{background:var(--navy); color:#fff; padding:calc(14px + env(safe-area-inset-top)) 16px 12px}
+header h1{margin:0; font-size:1.15rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase}
+header p{margin:2px 0 0; font-size:.8rem; color:#9FC2D6}
+.tabs{position:sticky; top:0; z-index:50; display:flex; background:var(--navy-2);
+  overflow-x:auto; scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:1 0 auto; min-width:72px; padding:12px 14px; border:none; background:transparent;
+  color:#A8C5D6; font-size:.85rem; font-weight:600; letter-spacing:.02em;
+  border-bottom:3px solid transparent; cursor:pointer}
+.tab.on{color:#fff; border-bottom-color:var(--rust)}
+main{max-width:640px; margin:0 auto; padding:14px}
+.panel{display:none}
+.panel.on{display:block}
+.daybar{display:flex; align-items:baseline; justify-content:space-between; margin:6px 2px 10px}
+.daybar h2{margin:0; font-size:1rem; font-weight:700}
+.daybar span{font-size:.75rem; color:var(--muted)}
+.note{background:var(--card); border-left:4px solid var(--rust); border-radius:0 var(--r) var(--r) 0;
+  padding:10px 12px; font-size:.85rem; margin:0 0 12px; color:var(--muted)}
+.note b{color:var(--ink)}
+.note.blue{border-left-color:var(--blue)}
+.sect{margin:18px 2px 8px; font-size:.72rem; font-weight:700; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--muted)}
+.step{display:flex; gap:10px; background:var(--card); border:1px solid var(--line);
+  border-radius:var(--r); padding:11px 12px; margin-bottom:8px; align-items:flex-start}
+.step.done{opacity:.45}
+.step.done .t-title{text-decoration:line-through}
+.chk{appearance:none; width:24px; height:24px; min-width:24px; border:2px solid var(--line);
+  border-radius:7px; margin-top:2px; cursor:pointer; position:relative; background:#fff}
+.chk:checked{background:var(--ok); border-color:var(--ok)}
+.chk:checked::after{content:'✓'; color:#fff; position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:700}
+.t-body{flex:1; min-width:0}
+.t-time{font-size:.7rem; font-weight:700; color:var(--rust); letter-spacing:.04em}
+.t-title{font-size:.92rem; font-weight:600; margin:1px 0 2px}
+.t-note{font-size:.78rem; color:var(--muted); margin:0}
+.chips{display:flex; flex-wrap:wrap; gap:5px; margin-top:6px}
+.chip{font-size:.66rem; font-weight:700; padding:2px 8px; border-radius:99px; letter-spacing:.02em}
+.chip.zone{background:#EFEAE0; color:#6B5F4B}
+.chip.meal{background:var(--ok-lt); color:var(--ok)}
+.chip.snack{background:var(--blue-lt); color:#1A5694}
+.chip.alert{background:var(--rust-lt); color:var(--rust)}
+.wait{font-size:.7rem; font-weight:800; padding:3px 9px; border-radius:99px; white-space:nowrap;
+  background:#EFEAE0; color:var(--muted); align-self:center}
+.wait.ok{background:var(--ok-lt); color:var(--ok)}
+.wait.warn{background:var(--warn-lt); color:var(--warn)}
+.wait.bad{background:var(--bad-lt); color:var(--bad)}
+.wait.closed{background:#E8E8E8; color:#888}
+.bigbtn{display:block; width:100%; padding:13px; border:none; border-radius:var(--r);
+  background:var(--navy); color:#fff; font-size:.95rem; font-weight:700; cursor:pointer; margin:4px 0 10px}
+.bigbtn:active{transform:scale(.985)}
+.meta{font-size:.72rem; color:var(--muted); text-align:center; margin:0 0 14px}
+.meta a{color:var(--blue)}
+.board .step{align-items:center}
+.board .t-title{margin:0}
+.board .t-note{font-size:.7rem}
+.mapwrap{background:var(--card); border:1px solid var(--line); border-radius:var(--r);
+  padding:10px; margin-bottom:12px}
+.mapwrap p{margin:6px 4px 0; font-size:.7rem; color:var(--muted)}
+.legend{display:flex; flex-wrap:wrap; gap:10px; margin:8px 4px 0; font-size:.7rem; color:var(--muted)}
+.legend i{display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:4px}
+details{background:var(--card); border:1px solid var(--line); border-radius:var(--r);
+  padding:10px 12px; margin-bottom:8px; font-size:.85rem}
+details summary{font-weight:600; cursor:pointer}
+details p{color:var(--muted); margin:8px 0 0}
+.foot{margin-top:24px; text-align:center; font-size:.7rem; color:var(--muted)}
+</style>
+</head>
+<body>
+<header>
+  <h1>Cedar Point — coaster weekend</h1>
+  <p>Sat full · Sun from ~2pm · Mon full · 18 coasters · no Fast Lane</p>
+</header>
+<nav class="tabs" id="tabs">
+  <button class="tab on" data-p="sat">Sat 13</button>
+  <button class="tab" data-p="sun">Sun 14</button>
+  <button class="tab" data-p="mon">Mon 15</button>
+  <button class="tab" data-p="waits">Waits</button>
+  <button class="tab" data-p="tips">Tips</button>
+</nav>
+<main>
+
+<!-- ============ SATURDAY ============ -->
+<section class="panel on" id="p-sat">
+  <div class="daybar"><h2>Saturday — back-gate blitz</h2><span>10am–10pm · busiest day</span></div>
+  <div class="note"><b>Park in the Soak City / Cedar Point Shores lot.</b> Tell the toll attendant you're going to Soak City. Enter via the Magnum/Resort gate — 5 min to Steel Vengeance vs 20 from the main gate.</div>
+
+  <div class="mapwrap">
+    <svg viewBox="0 0 360 250" role="img" aria-label="Schematic Cedar Point map">
+      <path d="M30,235 L70,140 Q90,90 150,55 Q220,15 330,18 L340,55 Q250,50 190,85 Q130,120 110,175 L95,238 Z" fill="#EAF1EE" stroke="#C9D6D0" stroke-width="2"/>
+      <text x="300" y="40" font-size="10" fill="#5C6B77" font-weight="700">FRONTIER TOWN</text>
+      <text x="175" y="78" font-size="10" fill="#5C6B77" font-weight="700">GEMINI MIDWAY</text>
+      <text x="105" y="150" font-size="10" fill="#5C6B77" font-weight="700">MAIN MIDWAY</text>
+      <text x="38" y="225" font-size="10" fill="#5C6B77" font-weight="700">MAIN GATE</text>
+      <circle cx="318" cy="55" r="6" fill="#B5482A"/><text x="312" y="72" font-size="8" fill="#1A2530">SteVe</text>
+      <circle cx="285" cy="62" r="6" fill="#B5482A"/><text x="278" y="79" font-size="8" fill="#1A2530">Mav</text>
+      <circle cx="240" cy="72" r="6" fill="#2D7DD2"/><text x="230" y="89" font-size="8" fill="#1A2530">TT2</text>
+      <circle cx="220" cy="92" r="6" fill="#2D7DD2"/><text x="205" y="109" font-size="8" fill="#1A2530">Magnum</text>
+      <circle cx="195" cy="100" r="6" fill="#2D7DD2"/><text x="186" y="117" font-size="8" fill="#1A2530">MF</text>
+      <circle cx="172" cy="112" r="6" fill="#1E7A46"/><text x="155" y="129" font-size="8" fill="#1A2530">Gemini</text>
+      <circle cx="140" cy="138" r="6" fill="#9A6A00"/><text x="120" y="155" font-size="8" fill="#1A2530">Siren's C.</text>
+      <circle cx="118" cy="170" r="6" fill="#1E7A46"/><text x="98" y="187" font-size="8" fill="#1A2530">Raptor/Val</text>
+      <circle cx="92" cy="205" r="6" fill="#1E7A46"/><text x="100" y="210" font-size="8" fill="#1A2530">GateKeeper</text>
+      <circle cx="345" cy="30" r="5" fill="#0E2A3A"/><text x="296" y="22" font-size="8" fill="#0E2A3A" font-weight="700">BACK GATE ★</text>
+    </svg>
+    <div class="legend">
+      <span><i style="background:#B5482A"></i>Rope drop first</span>
+      <span><i style="background:#2D7DD2"></i>Late morning</span>
+      <span><i style="background:#9A6A00"></i>Monday rope drop</span>
+      <span><i style="background:#1E7A46"></i>Evening</span>
+    </div>
+    <p>Schematic only — peninsula runs roughly main gate (SW) to Frontier Town (NE). Distances are real: gate-to-gate is a 20+ min walk.</p>
+  </div>
+
+  <div class="sect">Morning — rope drop</div>
+  <div class="step" data-k="sat1"><input type="checkbox" class="chk"><div class="t-body">
+    <div class="t-time">8:30 AM</div><div class="t-title">Leave hotel → Soak City lot</div>
+    <p class="t-note">At the lot by 9:00, at the back-gate rope by 9:40.</p>
+    <div class="chips"><span class="chip zone">Logistics</span></div></div></div>
+  <div class="step" data-k="sat2" data-ride="Steel Vengeance"><input type="checkbox" class="chk"><div class="t-body">
+    <div class="t-time">10:00 AM</div><div class="t-title">Steel Vengeance</div>
+    <p class="t-note">Lockers first (free, ~5 min). 15–30 min now vs 90–150 midday. Back row = max airtime.</p>
+    <div class="chips"><span class="chip zone">Frontier Town</span><span class="chip alert">Locker + metal detector</span></div></div>
+    <span class="wait" data-w="Steel Vengeance">—</span></div>
+  <div class="step" data-k="sat3" data-ride="Maverick"><input type="checkbox" class="chk"><div class="t-body">
+    <div class="t-time">10:40 AM</div><div class="t-title">Maverick</div>
+    <p class="t-note">Next door. 60–80 min by 11am, so go straight there.</p>
+    <div class="chips"><span class="chip zone">Frontier Town</span><span class="chip alert">Locker</span></div></div>
+    <span class="wait" data-w="Maverick">—</span></div>
+  <div class="step" data-k="sat4" data-ride="Top Thrill 2"><input type="checkbox" class="chk"><div class="t-body">
+    <div class="t-time">11:15 AM</div><div class="t-title">Top Thrill 2</div>
+    <p class="t-note">Ride it the first time the line is sane — it's the most likely coaster to go down. Don't bank on a night ride.</p>
+    <div class="chips"><span class="chip zone">Gemini Midway</span><span class="chip alert">Locker + metal detector</span></div></div>
+    <span class="wait" data-w="Top Thrill 2">—</span></div>
+  <div class="step" data-k="sat5" data-ride="Magnum XL-200"><input type="checkbox" class="chk"><div class="t-body">
+    <div class="t-time">12:00 PM</div><div class="t-title">Magnum XL-200 → Mine Ride → Gemini</div>
+    <p class="t-note">All short waits here. Ride both sides of Gemini if it's racing.</p>
+    <div class="chips"><span class="chip zone">Gemini Midway</span></div></div>
+    <span class="wait" data-w="Magnum XL-200">—</span></div>
+
+  <div class="sect">Afternoon</div>
+  <div class="step" data-k="sat6"><input type="checkbox" class="chk"><div class="t-body">
+    <div class="t-time">1:00 PM</div><div class="t-title">Lunch — BackBeatQue</div>
+    <p class="t-note">Entrée + side on plan: smoked sirloin, pulled pork, ribs, rotisserie chicken. Eat before the 1:30 crush.</p>
+    <div class="chips"><span class="chip zone">Gemini Midway</span><span class="chip meal">On dining plan</span></div></div></div>
+  <div class="step" data-k="sat7" data-ride="Millennium Force"><input type="checkbox" class="chk"><div class="t-body">
+    <div class="t-time">2:00 PM</div><div class="t-title">Millennium Force</div>
+    <p class="t-note">Accept 45–60 min — its waits don't collapse until close. Power Tower or MaXair after if you need a breather.</p>
+    <div class="chips"><span class="chip zone">Main Midway</span></div></div>
+    <span class="wait" data-w="Millennium Force">—</span></div>
+  <div class="step" data-k="sat8" data-ride="Wild Mouse"><input type="checkbox" class="chk"><div class="t-body">
+    <div class="t-time">4:00 PM</div><div class="t-title">Wild Mouse → Iron Dragon → Corkscrew → Rougarou</div>
+    <p class="t-note">Front/mid-park sweep while families peel off to dinner. 10–25 min each.</p>
+    <div class="chips"><span class="chip zone">Main Midway</span></div></div>
+    <span class="wait" data-w="Wild Mouse">—</span></div>
+  <div class="step" data-k="sat9"><input type="checkbox" class="chk"><div class="t-body">
+    <div class="t-time">4PM–CLOSE</div><div class="t-title">Barrels & Bites — Frontier Trail</div>
+    <p class="t-note">Food festival, included with admission (tastings extra, NOT on dining plan). Runs all 3 of your days.</p>
+    <div class="chips"><span class="chip zone">Frontier Trail</span></div></div></div>
+
+  <div class="sect">Evening</div>
+  <div class="step" data-k="sat10"><input type="checkbox" class="chk"><div class="t-body">
+    <div class="t-time">6:00 PM</div><div class="t-title">Dinner — Farmhouse Kitchen & Grill</div>
+    <p class="t-note">On plan: wood-fired steak, specialty pasta, chicken & dumplings + biscuit. Near Maverick.</p>
+    <div class="chips"><span class="chip zone">Frontier Town</span><span class="chip meal">On dining plan</span></div></div></div>
+  <div class="step" data-k="sat11" data-ride="GateKeeper"><input type="checkbox" class="chk"><div class="t-body">
+    <div class="t-time">7:00 PM</div><div class="t-title">GateKeeper → Valravn → Raptor</div>
+    <p class="t-note">Front-gate B&M trio. Waits drop sharply 5–7pm.</p>
+    <div class="chips"><span class="chip zone">Main Midway</span></div></div>
+    <span class="wait" data-w="GateKeeper">—</span></div>
+  <div class="step" data-k="sat12"><input type="checkbox" class="chk"><div class="t-body">
+    <div class="t-time">8:30 PM</div><div class="t-title">Closing hour — SteVe / Maverick re-rides</div>
+    <p class="t-note">Lines fall to 20–40 min. You exit by the back lot anyway — end the night where you parked.</p>
+    <div class="chips"><span class="chip zone">Frontier Town</span></div></div></div>
+</section>
+
+<!-- ============ SUNDAY ============ -->
+<section class="panel" id="p-sun">
+  <div class="daybar"><h2>Sunday — late start, night rides</h2><span>~2pm–10pm · easy day</span></div>
+  <div class="note blue"><b>Plan for a 2pm arrival:</b> skip the headliners until evening — afternoon is peak-wait territory. Today is credits cleanup, flats, food, and the closing-hour collapse. Siren's Curse moves to Monday rope drop (its line never breaks midday and is worst at close).</div>
+
+  <div class="sect">Arrival + lunch</div>
+  <div class="step" data-k="sun1"><input type="checkbox" class="chk"><div class="t-body">
+    <div class="t-time">2:00 PM</div><div class="t-title">Park Soak City lot → back gate</div>
+    <p class="t-note">Same routine as Saturday — tonight ends in Frontier Town, so park near the exit you'll use.</p>
+    <div class="chips"><span class="chip zone">Logistics</span></div></div></div>
+  <div class="step" data-k="sun2"><input type="checkbox" class="chk"><div class="t-body">
+    <div class="t-time">2:15 PM</div><div class="t-title">Lunch — Farmhouse Kitchen & Grill</div>
+    <p class="t-note">On plan: wood-fired steak, pasta, chicken & dumplings + biscuit. Right inside the back gate area, post-lunch-rush.</p>
+    <div class="chips"><span class="chip zone">Frontier Town</span><span class="chip meal">On dining plan</span></div></div></div>
+
+  <div class="sect">Afternoon — credits cleanup + flats</div>
+  <div class="step" data-k="sun3" data-ride="Blue Streak"><input type="checkbox" class="chk"><div class="t-body">
+    <div class="t-time">3:15 PM</div><div class="t-title">Blue Streak</div>
+    <p class="t-note">Credit 15 of 18. The park's oldest (1964), near Frontier Town's edge.</p>
+    <div class="chips"><span class="chip zone">Frontier Town</span></div></div>
+    <span class="wait" data-w="Blue Streak">—</span></div>
+  <div class="step" data-k="sun4" data-ride="Woodstock Express"><input type="checkbox" class="chk"><div class="t-body">
+    <div class="t-time">3:45 PM</div><div class="t-title">Woodstock Express + Wilderness Run</div>
+    <p class="t-note">Credits 16 and 17 — both walk-ons in Camp Snoopy. That leaves only Siren's Curse (Monday).</p>
+    <div class="chips"><span class="chip zone">Camp Snoopy</span></div></div>
+    <span class="wait" data-w="Woodstock Express">—</span></div>
+  <div class="step" data-k="sun5" data-ride="maXair"><input type="checkbox" class="chk"><div class="t-body">
+    <div class="t-time">4:15 PM</div><div class="t-title">Flats hour — MaXair → Power Tower → Skyhawk</div>
+    <p class="t-note">Best flats in the park while coaster lines are still peaked. Skyhawk is right by Frontier Town.</p>
+    <div class="chips"><span class="chip zone">Main Midway</span></div></div>
+    <span class="wait" data-w="maXair">—</span></div>
+  <div class="step" data-k="sun6"><input type="checkbox" class="chk"><div class="t-body">
+    <div class="t-time">5:00 PM</div><div class="t-title">Barrels & Bites stroll — Frontier Trail</div>
+    <p class="t-note">Tastings + live music (not on dining plan). This is the take-the-park-in hour.</p>
+    <div class="chips"><span class="chip zone">Frontier Trail</span></div></div></div>
+
+  <div class="sect">Evening — the good part</div>
+  <div class="step" data-k="sun7" data-ride="Raptor"><input type="checkbox" class="chk"><div class="t-body">
+    <div class="t-time">6:00 PM</div><div class="t-title">Re-ride pick: GateKeeper / Valravn / Raptor dip</div>
+    <p class="t-note">The 5–7pm front-gate lull. Grab whichever you want a second lap on — or skip and stay back-of-park.</p>
+    <div class="chips"><span class="chip zone">Main Midway</span></div></div>
+    <span class="wait" data-w="Raptor">—</span></div>
+  <div class="step" data-k="sun8"><input type="checkbox" class="chk"><div class="t-body">
+    <div class="t-time">7:00 PM</div><div class="t-title">Dinner — Grand Pavilion or Coasters Drive-In</div>
+    <p class="t-note">Both on plan. Grand Pavilion: carved rotisserie steak, lakefront. Coasters: burger basket, 50s diner.</p>
+    <div class="chips"><span class="chip meal">On dining plan</span></div></div></div>
+  <div class="step" data-k="sun9" data-ride="Millennium Force"><input type="checkbox" class="chk"><div class="t-body">
+    <div class="t-time">8:00 PM</div><div class="t-title">Millennium Force night ride → Top Thrill 2</div>
+    <p class="t-note">Both transform after dark. TT2 only if it's running — check the chip.</p>
+    <div class="chips"><span class="chip zone">Main Midway</span></div></div>
+    <span class="wait" data-w="Millennium Force">—</span></div>
+  <div class="step" data-k="sun10" data-ride="Steel Vengeance"><input type="checkbox" class="chk"><div class="t-body">
+    <div class="t-time">9:00 PM</div><div class="t-title">Closing hour — Steel Vengeance + Maverick in the dark</div>
+    <p class="t-note">SteVe at night is the best ride in the park, full stop. Lines drop to 20–40 min. Exit straight to the car.</p>
+    <div class="chips"><span class="chip zone">Frontier Town</span></div></div>
+    <span class="wait" data-w="Steel Vengeance">—</span></div>
+</section>
+
+<!-- ============ MONDAY ============ -->
+<section class="panel" id="p-mon">
+  <div class="daybar"><h2>Monday — full day, lightest crowds</h2><span>10am–close · main gate</span></div>
+  <div class="note"><b>Front gate today, not the back lot.</b> Siren's Curse is your one remaining credit and Monday rope drop is the only sub-30-min window it has. <b>Verify Monday's close time</b> in the app — some June Mondays close 8pm instead of 10pm.</div>
+
+  <div class="sect">Morning — finish the set</div>
+  <div class="step" data-k="mon1"><input type="checkbox" class="chk"><div class="t-body">
+    <div class="t-time">9:20 AM</div><div class="t-title">Main gate, at the rope by 9:45</div>
+    <div class="chips"><span class="chip zone">Main Gate</span></div></div></div>
+  <div class="step" data-k="mon2" data-ride="Siren"><input type="checkbox" class="chk"><div class="t-body">
+    <div class="t-time">10:00 AM</div><div class="t-title">Siren's Curse — credit 18 of 18</div>
+    <p class="t-note">Straight there, no detours — near Iron Dragon. Tilt coaster, 90° forward tilt before the drop. Locker required.</p>
+    <div class="chips"><span class="chip zone">Main Midway</span><span class="chip alert">Locker</span></div></div>
+    <span class="wait" data-w="Siren">—</span></div>
+  <div class="step" data-k="mon3"><input type="checkbox" class="chk"><div class="t-body">
+    <div class="t-time">10:30 AM</div><div class="t-title">Siren's Curse re-ride (optional, line permitting)</div>
+    <p class="t-note">If the queue is still short, lap it now — there will be no second chance later in the day.</p>
+    <div class="chips"><span class="chip zone">Main Midway</span></div></div></div>
+  <div class="step" data-k="mon4" data-ride="Top Thrill 2"><input type="checkbox" class="chk"><div class="t-body">
+    <div class="t-time">11:00 AM</div><div class="t-title">Top Thrill 2 — safety-net slot</div>
+    <p class="t-note">If TT2 was down Sat/Sun this is the make-up window. Otherwise a bonus lap — Monday waits run 20–40 min.</p>
+    <div class="chips"><span class="chip zone">Gemini Midway</span></div></div>
+    <span class="wait" data-w="Top Thrill 2">—</span></div>
+  <div class="step" data-k="mon5" data-ride="Millennium Force"><input type="checkbox" class="chk"><div class="t-body">
+    <div class="t-time">11:45 AM</div><div class="t-title">Millennium Force</div>
+    <p class="t-note">30–45 min typical Monday late morning.</p>
+    <div class="chips"><span class="chip zone">Main Midway</span></div></div>
+    <span class="wait" data-w="Millennium Force">—</span></div>
+
+  <div class="sect">Afternoon — open-format favorites</div>
+  <div class="step" data-k="mon6"><input type="checkbox" class="chk"><div class="t-body">
+    <div class="t-time">12:45 PM</div><div class="t-title">Lunch — BackBeatQue round 2</div>
+    <p class="t-note">On plan. Or Panda Express / Miss Keat's burrito bowl if you want a change.</p>
+    <div class="chips"><span class="chip zone">Gemini Midway</span><span class="chip meal">On dining plan</span></div></div></div>
+  <div class="step" data-k="mon7" data-ride="Maverick"><input type="checkbox" class="chk"><div class="t-body">
+    <div class="t-time">1:45 PM</div><div class="t-title">Frontier Town block — SteVe + Maverick laps</div>
+    <p class="t-note">Monday afternoon waits are the lowest of your trip. Ride until satisfied; mix in Skyhawk or Thunder Canyon (you WILL get wet).</p>
+    <div class="chips"><span class="chip zone">Frontier Town</span></div></div>
+    <span class="wait" data-w="Maverick">—</span></div>
+  <div class="step" data-k="mon8" data-ride="WindSeeker"><input type="checkbox" class="chk"><div class="t-body">
+    <div class="t-time">4:00 PM</div><div class="t-title">WindSeeker + Giant Wheel — Lake Erie views</div>
+    <p class="t-note">Golden-hour lake views. Sky Ride and Cedar Downs (1920 racing derby) if you missed them.</p>
+    <div class="chips"><span class="chip zone">Main Midway</span></div></div>
+    <span class="wait" data-w="WindSeeker">—</span></div>
+  <div class="step" data-k="mon9"><input type="checkbox" class="chk"><div class="t-body">
+    <div class="t-time">5:00 PM</div><div class="t-title">Happy Friar — fresh-cut fries</div>
+    <p class="t-note">Park institution since 1942. Full meal on plan; fries alone = Premium snack credit.</p>
+    <div class="chips"><span class="chip zone">Gemini Midway</span><span class="chip meal">On dining plan</span><span class="chip snack">Premium snack</span></div></div></div>
+
+  <div class="sect">Evening — finale</div>
+  <div class="step" data-k="mon10"><input type="checkbox" class="chk"><div class="t-body">
+    <div class="t-time">6:00 PM</div><div class="t-title">Dinner — anything left on your list</div>
+    <p class="t-note">Hugo's, Frontier Inn, Corral, Grand Pavilion — all on plan. Or graze Barrels & Bites one last time.</p>
+    <div class="chips"><span class="chip meal">On dining plan</span></div></div></div>
+  <div class="step" data-k="mon11"><input type="checkbox" class="chk"><div class="t-body">
+    <div class="t-time">7:00 PM</div><div class="t-title">Free play — chase the shortest lines</div>
+    <p class="t-note">Open the Waits tab and run the board. Monday evenings most coasters are walk-on to 20 min.</p>
+    <div class="chips"><span class="chip zone">Your call</span></div></div></div>
+  <div class="step" data-k="mon12"><input type="checkbox" class="chk"><div class="t-body">
+    <div class="t-time">CLOSE −1HR</div><div class="t-title">Final night rides — SteVe → Maverick → carousel send-off</div>
+    <p class="t-note">You parked at the FRONT today, so route the night: Frontier Town last laps first, then Midway Carousel (1921) as the true finale on the walk out the main gate.</p>
+    <div class="chips"><span class="chip zone">Main Midway</span></div></div></div>
+</section>
+<!-- ============ LIVE WAITS ============ -->
+<section class="panel" id="p-waits">
+  <div class="daybar"><h2>Live wait times</h2><span>all coasters</span></div>
+  <button class="bigbtn" id="refresh">↻ Refresh wait times</button>
+  <p class="meta" id="updated">Not loaded yet — tap refresh.</p>
+  <div class="board" id="board"></div>
+  <p class="meta">Green ≤ 30 min (your limit) · amber 31–60 · red 60+<br>
+  Powered by <a href="https://queue-times.com/" target="_blank" rel="noopener">Queue-Times.com</a> · updates every ~5 min</p>
+</section>
+
+<!-- ============ TIPS ============ -->
+<section class="panel" id="p-tips">
+  <div class="daybar"><h2>Reference</h2><span>verified Jun 2026</span></div>
+  <details open><summary>Dining plan — your spots, confirmed</summary>
+    <p>All on the 2026 plan: <b>BackBeatQue</b>, <b>Farmhouse Kitchen & Grill</b>, <b>Grand Pavilion</b>, <b>Hugo's</b>, <b>Coasters Drive-In</b>, <b>Happy Friar</b>, plus Panda Express, Frontier Inn, Miss Keat's, Corral, Derby Dogs. Entrée + side every 90 min. <b>$35 All-Day plan has NO drinks</b> — the $49 Premium adds drinks + snack redemptions (pretzels, popcorn, Happy Friar fries, ice cream). Barrels & Bites tastings are <b>not</b> on the plan.</p></details>
+  <details><summary>Locker rides (4)</summary>
+    <p>Steel Vengeance, Maverick, Top Thrill 2, Siren's Curse: no loose articles, metal detectors, free lockers at entrance. Bring a ziplock so phone + wallet + keys go in as one unit. Budget 5 min each visit.</p></details>
+  <details><summary>Top Thrill 2 reality check</summary>
+    <p>Operating in 2026, but its history says ride it early, never save it for last. If it's down, check the app every 30 min — it often returns mid-afternoon. Monday 11am is your built-in safety net.</p></details>
+  <details><summary>Wind closures</summary>
+    <p>Lake Erie wind closes rides: TT2 first (lowest threshold), then Millennium Force, Valravn, GateKeeper, WindSeeker. A windy forecast = ride those four the moment you can.</p></details>
+  <details><summary>Fast Lane bail-out rule</summary>
+    <p>If by 11am Saturday all four headliners (SteVe, Maverick, TT2, Siren's Curse) show 90+ min with no rain coming, buy single-day Fast Lane Plus in the app for the afternoon. Note: those four are Fast Lane <b>Plus</b> only — standard FL doesn't cover them.</p></details>
+  <details><summary>Show options</summary>
+    <p>Hoots & Hollers stand-up — Palace Theatre, Fri/Sat/Sun (9pm show 21+). New Jack Aldrich Theatre musical revue (Woodstock-era pop). Barrels & Bites live music on Frontier Trail from 4pm.</p></details>
+  <details><summary>Checklist data</summary>
+    <p>Checkmarks save to this device automatically. <button onclick="if(confirm('Reset all checkmarks?')){localStorage.removeItem('cpTrip');location.reload()}" style="font:inherit;padding:6px 12px;border:1px solid var(--line);border-radius:8px;background:#fff;cursor:pointer">Reset all</button></p></details>
+  <p class="foot">Built for Matt's Cedar Point run · Jun 13–15 2026<br>Wait data: Queue-Times.com (park #50) · Plan data verified 6/10/26</p>
+</section>
+</main>
+<script>
+// ---------- tabs ----------
+const tabs=document.querySelectorAll('.tab'),panels=document.querySelectorAll('.panel');
+tabs.forEach(t=>t.addEventListener('click',()=>{
+  tabs.forEach(x=>x.classList.remove('on'));panels.forEach(x=>x.classList.remove('on'));
+  t.classList.add('on');document.getElementById('p-'+t.dataset.p).classList.add('on');
+  window.scrollTo({top:0});
+  if(t.dataset.p==='waits'&&!loadedOnce)loadWaits();
+}));
+
+// ---------- checklist persistence ----------
+const KEY='cpTrip';
+let state={};try{state=JSON.parse(localStorage.getItem(KEY)||'{}')}catch(e){}
+document.querySelectorAll('.step[data-k]').forEach(s=>{
+  const k=s.dataset.k,c=s.querySelector('.chk');
+  if(state[k]){c.checked=true;s.classList.add('done')}
+  c.addEventListener('change',()=>{
+    state[k]=c.checked;s.classList.toggle('done',c.checked);
+    try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}
+  });
+});
+
+// ---------- live waits via Queue-Times ----------
+const API='https://queue-times.com/parks/50/queue_times.json';
+const PROXY='https://api.allorigins.win/raw?url='+encodeURIComponent(API);
+const COASTERS=['Steel Vengeance','Maverick','Top Thrill 2','Siren','Millennium Force','Valravn','GateKeeper','Raptor','Rougarou','Magnum','Gemini','Blue Streak','Iron Dragon','Cedar Creek','Corkscrew','Wild Mouse','Woodstock','Wilderness Run','maXair','Power Tower','WindSeeker','Skyhawk'];
+let loadedOnce=false;
+function cls(w){return w<=30?'ok':w<=60?'warn':'bad'}
+async function fetchData(){
+  try{const r=await fetch(API,{cache:'no-store'});if(!r.ok)throw 0;return await r.json()}
+  catch(e){const r=await fetch(PROXY,{cache:'no-store'});return await r.json()}
+}
+async function loadWaits(){
+  const btn=document.getElementById('refresh'),up=document.getElementById('updated');
+  btn.disabled=true;btn.textContent='Loading…';
+  try{
+    const data=await fetchData();
+    const rides=[];
+    (data.lands||[]).forEach(l=>(l.rides||[]).forEach(r=>rides.push(r)));
+    (data.rides||[]).forEach(r=>rides.push(r));
+    // inline chips on itinerary steps
+    document.querySelectorAll('.wait[data-w]').forEach(ch=>{
+      const m=rides.find(r=>r.name.toLowerCase().includes(ch.dataset.w.toLowerCase()));
+      if(!m){ch.textContent='n/a';ch.className='wait';return}
+      if(!m.is_open){ch.textContent='CLOSED';ch.className='wait closed'}
+      else{ch.textContent=m.wait_time+' min';ch.className='wait '+cls(m.wait_time)}
+    });
+    // full board
+    const matched=[];
+    COASTERS.forEach(n=>{
+      const m=rides.find(r=>r.name.toLowerCase().includes(n.toLowerCase()));
+      if(m&&!matched.includes(m))matched.push(m);
+    });
+    matched.sort((a,b)=>(b.is_open-a.is_open)||(a.wait_time-b.wait_time));
+    document.getElementById('board').innerHTML=matched.map(r=>
+      '<div class="step"><div class="t-body"><div class="t-title">'+r.name+'</div></div>'+
+      (r.is_open?'<span class="wait '+cls(r.wait_time)+'">'+r.wait_time+' min</span>'
+                :'<span class="wait closed">CLOSED</span>')+'</div>').join('');
+    up.textContent='Updated '+new Date().toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})+' · sorted shortest first';
+    loadedOnce=true;
+  }catch(e){
+    up.textContent='Could not reach wait-time service — check signal and retry.';
+  }
+  btn.disabled=false;btn.textContent='↻ Refresh wait times';
+}
+document.getElementById('refresh').addEventListener('click',loadWaits);
+</script>
+</body>
+</html>
