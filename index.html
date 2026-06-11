@@ -2,10 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#0E2A3A">
 <title>Cedar Point · June 13–15</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
 :root{
   --navy:#0E2A3A; --navy-2:#163A4E; --paper:#FAF8F3; --card:#FFFFFF;
@@ -18,137 +19,182 @@
 html{font-size:16px}
 body{margin:0;background:var(--paper);color:var(--ink);
   font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
-  line-height:1.5;padding-bottom:40px}
-header{background:var(--navy);color:#fff;padding:calc(14px + env(safe-area-inset-top)) 16px 12px}
-header h1{margin:0;font-size:1.1rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
-header p{margin:2px 0 0;font-size:.78rem;color:#9FC2D6}
-.tabs{position:sticky;top:0;z-index:50;display:flex;background:var(--navy-2);overflow-x:auto;scrollbar-width:none}
-.tabs::-webkit-scrollbar{display:none}
-.tab{flex:1 0 auto;min-width:62px;padding:12px 12px;border:none;background:transparent;
-  color:#A8C5D6;font-size:.84rem;font-weight:600;border-bottom:3px solid transparent;cursor:pointer}
-.tab.on{color:#fff;border-bottom-color:var(--rust)}
-main{max-width:640px;margin:0 auto;padding:14px}
-.panel{display:none}.panel.on{display:block}
-.daybar{display:flex;align-items:baseline;justify-content:space-between;margin:6px 2px 10px}
-.daybar h2{margin:0;font-size:1rem;font-weight:700}
-.daybar span{font-size:.74rem;color:var(--muted)}
+  line-height:1.5;padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+header{background:var(--navy);color:#fff;padding:calc(12px + env(safe-area-inset-top)) 16px 10px}
+header h1{margin:0;font-size:1.05rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+header p{margin:1px 0 0;font-size:.74rem;color:#9FC2D6}
+main{max-width:640px;margin:0 auto;padding:12px}
+.view{display:none}.view.on{display:block}
+/* bottom nav */
+.bnav{position:fixed;bottom:0;left:0;right:0;z-index:200;background:var(--navy);
+  display:flex;justify-content:space-around;padding:6px 4px calc(8px + env(safe-area-inset-bottom));
+  border-top:1px solid rgba(255,255,255,.08)}
+.bnav button{flex:1;max-width:110px;border:none;background:transparent;color:#7FA3B8;
+  font-size:.66rem;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 0;border-radius:10px}
+.bnav button svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.bnav button.on{color:#fff;background:rgba(255,255,255,.09)}
+/* segmented day control */
+.seg{display:flex;background:#EFEAE0;border-radius:11px;padding:3px;margin:2px 0 12px}
+.seg button{flex:1;padding:9px 4px;border:none;border-radius:9px;background:transparent;
+  font-size:.82rem;font-weight:700;color:var(--muted);cursor:pointer}
+.seg button.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.seg button .d{display:block;font-size:.62rem;font-weight:600;color:var(--muted)}
+.daybar{display:flex;align-items:baseline;justify-content:space-between;margin:4px 2px 8px}
+.daybar h2{margin:0;font-size:.98rem;font-weight:700}
+.daybar span{font-size:.72rem;color:var(--muted)}
 .note{background:var(--card);border-left:4px solid var(--rust);border-radius:0 var(--r) var(--r) 0;
-  padding:10px 12px;font-size:.84rem;margin:0 0 12px;color:var(--muted)}
+  padding:10px 12px;font-size:.83rem;margin:0 0 12px;color:var(--muted)}
 .note b{color:var(--ink)}.note.blue{border-left-color:var(--blue)}
-.sect{margin:18px 2px 8px;font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
-  display:flex;justify-content:space-between;align-items:center}
-.step{display:flex;gap:10px;background:var(--card);border:1px solid var(--line);
-  border-radius:var(--r);padding:11px 12px;margin-bottom:8px;align-items:flex-start}
+.sect{margin:16px 2px 8px;font-size:.69rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.step{display:flex;gap:9px;background:var(--card);border:1px solid var(--line);
+  border-radius:var(--r);padding:11px 10px 11px 12px;margin-bottom:8px;align-items:flex-start;position:relative}
 .step.done{opacity:.45}.step.done .t-title{text-decoration:line-through}
+.step.dragging{opacity:.92;box-shadow:0 8px 22px rgba(0,0,0,.18);z-index:90;border-color:var(--blue)}
 .chk{appearance:none;width:24px;height:24px;min-width:24px;border:2px solid var(--line);
   border-radius:7px;margin-top:2px;cursor:pointer;position:relative;background:#fff}
 .chk:checked{background:var(--ok);border-color:var(--ok)}
 .chk:checked::after{content:'✓';color:#fff;position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700}
 .t-body{flex:1;min-width:0}
-.t-time{font-size:.68rem;font-weight:700;color:var(--rust);letter-spacing:.04em}
-.t-title{font-size:.9rem;font-weight:600;margin:1px 0 2px}
-.t-note{font-size:.77rem;color:var(--muted);margin:0}
+.t-time{font-size:.67rem;font-weight:700;color:var(--rust);letter-spacing:.04em}
+.t-title{font-size:.89rem;font-weight:600;margin:1px 0 2px}
+.t-note{font-size:.76rem;color:var(--muted);margin:0}
 .chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
-.chip{font-size:.64rem;font-weight:700;padding:2px 8px;border-radius:99px}
+.chip{font-size:.63rem;font-weight:700;padding:2px 8px;border-radius:99px}
 .chip.zone{background:#EFEAE0;color:#6B5F4B}
 .chip.meal{background:var(--ok-lt);color:var(--ok)}
 .chip.snack{background:var(--blue-lt);color:#1A5694}
 .chip.alert{background:var(--rust-lt);color:var(--rust)}
-.rail{display:flex;flex-direction:column;gap:4px;align-items:center}
-.wait{font-size:.68rem;font-weight:800;padding:3px 9px;border-radius:99px;white-space:nowrap;background:#EFEAE0;color:var(--muted)}
+.rail{display:flex;flex-direction:column;gap:5px;align-items:flex-end}
+.wait{font-size:.67rem;font-weight:800;padding:3px 9px;border-radius:99px;white-space:nowrap;background:#EFEAE0;color:var(--muted)}
 .wait.ok{background:var(--ok-lt);color:var(--ok)}
 .wait.warn{background:var(--warn-lt);color:var(--warn)}
 .wait.bad{background:var(--bad-lt);color:var(--bad)}
 .wait.closed{background:#E8E8E8;color:#888}
-.mv{display:flex;gap:3px}
-.mv button{width:26px;height:26px;border:1px solid var(--line);background:#fff;border-radius:7px;
-  font-size:.8rem;color:var(--muted);cursor:pointer;padding:0;line-height:1}
-.mv button:active{background:var(--paper)}
-.mv .del{color:var(--bad)}
+.railrow{display:flex;gap:6px;align-items:center}
+.drag{width:30px;height:30px;display:flex;align-items:center;justify-content:center;
+  color:#C9C2B4;font-size:1.05rem;cursor:grab;touch-action:none;user-select:none;border-radius:8px}
+.drag:active{cursor:grabbing;background:var(--paper)}
+.gm,.del2{width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:8px;
+  border:1px solid var(--line);background:#fff;color:var(--muted);font-size:.85rem;text-decoration:none;cursor:pointer}
+.del2{color:var(--bad)}
 .bigbtn{display:block;width:100%;padding:13px;border:none;border-radius:var(--r);
   background:var(--navy);color:#fff;font-size:.95rem;font-weight:700;cursor:pointer;margin:4px 0 10px}
-.bigbtn:active{transform:scale(.985)}
-.bigbtn[disabled]{opacity:.6}
-.bigbtn.lt{background:#fff;color:var(--navy);border:1.5px solid var(--line)}
+.bigbtn:active{transform:scale(.985)}.bigbtn[disabled]{opacity:.6}
 .meta{font-size:.72rem;color:var(--muted);text-align:center;margin:0 0 14px}
 .meta a{color:var(--blue)}
 .board .step{align-items:center}.board .t-title{margin:0}
-.mapwrap{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:10px;margin-bottom:12px}
-.mapwrap p{margin:6px 4px 0;font-size:.68rem;color:var(--muted)}
 details{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;margin-bottom:8px;font-size:.84rem}
 details summary{font-weight:600;cursor:pointer}
 details p{color:var(--muted);margin:8px 0 0}
 .stars{display:flex;gap:2px;font-size:1.05rem;line-height:1;cursor:pointer;user-select:none}
 .stars span{color:#D9D2C4}.stars span.on{color:#E8A413}
-.addform{background:var(--card);border:1.5px dashed var(--line);border-radius:var(--r);padding:12px;margin-bottom:8px;display:none}
-.addform.on{display:block}
-.addform input,.addform textarea{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;
-  font:inherit;font-size:.85rem;margin-bottom:7px;background:var(--paper)}
-.addform .row{display:flex;gap:7px}
-.addform button{flex:1;padding:9px;border-radius:8px;border:none;font-weight:700;cursor:pointer;font-size:.85rem}
-.addform .save{background:var(--ok);color:#fff}.addform .cancel{background:#EFEAE0;color:var(--muted)}
-.addlink{width:100%;padding:11px;border:1.5px dashed var(--line);border-radius:var(--r);background:transparent;
-  color:var(--muted);font-size:.85rem;font-weight:600;cursor:pointer;margin-bottom:8px}
+.addlink{width:100%;padding:12px;border:1.5px dashed var(--line);border-radius:var(--r);background:transparent;
+  color:var(--muted);font-size:.86rem;font-weight:600;cursor:pointer;margin-bottom:8px}
+/* bottom sheet picker */
+.sheetbg{position:fixed;inset:0;background:rgba(14,42,58,.45);z-index:300;display:none}
+.sheetbg.on{display:block}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:310;background:var(--paper);
+  border-radius:18px 18px 0 0;max-height:78vh;display:none;flex-direction:column;
+  padding:14px 14px calc(14px + env(safe-area-inset-bottom))}
+.sheet.on{display:flex}
+.sheet h3{margin:0 0 10px;font-size:.95rem}
+.sheet input[type=text]{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;font-size:.9rem;margin-bottom:8px;background:#fff}
+.cats{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none}
+.cats::-webkit-scrollbar{display:none}
+.cats button{padding:7px 13px;border:1px solid var(--line);border-radius:99px;background:#fff;
+  font-size:.74rem;font-weight:700;color:var(--muted);cursor:pointer;white-space:nowrap}
+.cats button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.picklist{overflow-y:auto;flex:1;margin:2px -2px}
+.pick{display:flex;justify-content:space-between;align-items:center;gap:8px;background:#fff;
+  border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:0 2px 7px;cursor:pointer}
+.pick .pn{font-size:.86rem;font-weight:600}
+.pick .pc{font-size:.66rem;color:var(--muted)}
+.pick .add{font-size:1.1rem;color:var(--ok);font-weight:700}
+.timebar{display:flex;gap:7px;margin-top:8px}
+.timebar input{flex:1;padding:11px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;font-size:.9rem;background:#fff}
+.timebar button{padding:11px 18px;border:none;border-radius:10px;background:var(--ok);color:#fff;font-weight:700;cursor:pointer}
+/* map */
+#map{height:62vh;border-radius:var(--r);border:1px solid var(--line);z-index:1}
+.maprow{display:flex;gap:8px;margin:10px 0}
+.maprow button{flex:1;padding:11px;border:1px solid var(--line);border-radius:var(--r);background:#fff;
+  font-size:.84rem;font-weight:700;color:var(--ink);cursor:pointer}
+.maprow button.live{background:var(--blue);color:#fff;border-color:var(--blue)}
 .wx{display:flex;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:var(--r);
   padding:10px 14px;margin-bottom:10px;font-size:.8rem;color:var(--muted);align-items:center;flex-wrap:wrap}
 .wx b{color:var(--ink);font-size:1rem}
 #ai-out{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:13px 14px;
   font-size:.87rem;white-space:pre-wrap;display:none;margin-bottom:10px}
-#ai-key,#ai-q{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:var(--r);
+#ai-key,#ai-q,#ai-model{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:var(--r);
   font:inherit;font-size:.88rem;margin-bottom:8px;background:#fff}
 .quick{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
 .quick button{padding:8px 12px;border:1px solid var(--line);border-radius:99px;background:#fff;
-  font-size:.76rem;font-weight:600;color:var(--ink);cursor:pointer}
+  font-size:.75rem;font-weight:600;color:var(--ink);cursor:pointer}
 .foot{margin-top:24px;text-align:center;font-size:.7rem;color:var(--muted)}
 </style>
 </head>
 <body>
 <header>
-  <h1>Cedar Point — coaster weekend</h1>
-  <p>Sat full · Sun from ~2pm · Mon full · 18 coasters · no Fast Lane</p>
+  <h1>Cedar Point</h1>
+  <p>Jun 13–15 · 18 coasters · no Fast Lane · 30-min limit</p>
 </header>
-<nav class="tabs" id="tabs">
-  <button class="tab on" data-p="sat">Sat</button>
-  <button class="tab" data-p="sun">Sun</button>
-  <button class="tab" data-p="mon">Mon</button>
-  <button class="tab" data-p="park">Park</button>
-  <button class="tab" data-p="waits">Waits</button>
-  <button class="tab" data-p="ai">Guide</button>
-  <button class="tab" data-p="tips">Tips</button>
-</nav>
 <main>
-<section class="panel on" id="p-sat"></section>
-<section class="panel" id="p-sun"></section>
-<section class="panel" id="p-mon"></section>
-<section class="panel" id="p-park"></section>
-<section class="panel" id="p-waits">
-  <div class="daybar"><h2>Live wait times</h2><span>tap stars to rate</span></div>
-  <div class="wx" id="wx">Weather: tap refresh to load.</div>
+<!-- PLAN -->
+<section class="view on" id="v-plan">
+  <div class="seg" id="dayseg">
+    <button data-d="sat" class="on">Sat<span class="d">full day</span></button>
+    <button data-d="sun">Sun<span class="d">from ~2pm</span></button>
+    <button data-d="mon">Mon<span class="d">full day</span></button>
+  </div>
+  <div id="plan-body"></div>
+</section>
+<!-- MAP -->
+<section class="view" id="v-map">
+  <div class="daybar"><h2 id="map-title">Route map</h2><span>pins approximate</span></div>
+  <div id="map"></div>
+  <div class="maprow">
+    <button id="btn-locate">⌖ Locate me</button>
+    <button id="btn-fit">Fit route</button>
+  </div>
+  <p class="meta">Numbered pins = today's route order (switch days in Plan). Blue dot = you, once located. Basemap © OpenStreetMap — ride outlines on the map itself are exact even where pins are approximate.</p>
+</section>
+<!-- WAITS -->
+<section class="view" id="v-waits">
+  <div class="daybar"><h2>Live waits</h2><span>tap stars to rate</span></div>
+  <div class="wx" id="wx">Weather loads with refresh.</div>
   <button class="bigbtn" id="refresh">↻ Refresh waits + weather</button>
   <p class="meta" id="updated">Not loaded yet.</p>
   <div class="board" id="board"></div>
-  <div class="daybar" style="margin-top:18px"><h2>Your coaster rankings</h2><span>highest first</span></div>
-  <div id="ranks" class="board"><p class="meta">Rate coasters above and your leaderboard builds here.</p></div>
-  <p class="meta">Green ≤ 30 min · amber 31–60 · red 60+<br>
-  Powered by <a href="https://queue-times.com/" target="_blank" rel="noopener">Queue-Times.com</a> · weather by <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a></p>
+  <div class="daybar" style="margin-top:18px"><h2>Your rankings</h2><span>highest first</span></div>
+  <div id="ranks" class="board"><p class="meta">Rate coasters above to build your leaderboard.</p></div>
+  <p class="meta">Green ≤ 30 · amber 31–60 · red 60+ · Powered by <a href="https://queue-times.com/" target="_blank" rel="noopener">Queue-Times.com</a> · weather <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a></p>
 </section>
-<section class="panel" id="p-ai">
-  <div class="daybar"><h2>AI park guide</h2><span>powered by Claude</span></div>
-  <div class="note blue"><b>One-time setup:</b> paste an Anthropic API key (console.anthropic.com → API keys). It's stored only in this browser's localStorage — never in the GitHub repo. Each question costs a fraction of a cent.</div>
+<!-- GUIDE -->
+<section class="view" id="v-ai">
+  <div class="daybar"><h2>AI park guide</h2><span>can edit your plan</span></div>
+  <div class="note blue"><b>Setup once:</b> paste an Anthropic API key (console.anthropic.com). Stored only in this browser — never in the repo.</div>
   <input type="password" id="ai-key" placeholder="sk-ant-... (saved on this device)">
+  <select id="ai-model">
+    <option value="claude-haiku-4-5">Haiku 4.5 — cheapest (~$0.002/question)</option>
+    <option value="claude-sonnet-4-6" selected>Sonnet 4.6 — smarter (~$0.005/question)</option>
+  </select>
   <div class="quick">
     <button data-q="What should we do next? Prioritize sub-30-minute waits and account for the weather.">What next?</button>
     <button data-q="Where should we eat right now on the dining plan, given where we probably are in the plan?">Where to eat?</button>
+    <button data-q="We feel like a show — pick the best one for tonight and add it to today's schedule.">Add a show</button>
     <button data-q="Rain or wind may be coming. Re-plan our next 2 hours around likely ride closures.">Weather re-plan</button>
     <button data-q="We have about 90 minutes left before close. Build the optimal final run.">Final 90 min</button>
   </div>
-  <textarea id="ai-q" rows="2" placeholder="Or ask anything... 'Maverick is down, what now?'"></textarea>
+  <textarea id="ai-q" rows="2" placeholder="Or ask anything... 'Maverick is down, what now?'" style="width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:12px;font:inherit;font-size:.88rem;margin-bottom:8px;background:#fff"></textarea>
   <button class="bigbtn" id="ai-go">Ask the guide</button>
   <div id="ai-out"></div>
-  <p class="meta">The guide auto-sees: live waits, current weather, time of day, your unchecked stops, and your ratings.</p>
+  <p class="meta">Auto-context: live waits, weather, time, your unchecked stops, ratings, show list. It can add stops, check things off, and reorder.</p>
 </section>
-<section class="panel" id="p-tips">
-  <div class="daybar"><h2>Reference</h2><span>verified Jun 2026</span></div>
+<!-- MORE -->
+<section class="view" id="v-more">
+  <div class="daybar"><h2>Everything else</h2><span>shows · classics · flats</span></div>
+  <div class="note blue"><b>Show times vary daily</b> — confirm in the official app morning-of. Add any of these to a day via Plan → add a stop.</div>
+  <div id="park-body"></div>
+  <div class="daybar" style="margin-top:20px"><h2>Reference</h2><span>verified Jun 2026</span></div>
   <details open><summary>Dining plan — confirmed spots</summary>
     <p>On the 2026 plan: <b>BackBeatQue</b>, <b>Farmhouse Kitchen & Grill</b>, <b>Grand Pavilion</b>, <b>Hugo's</b>, <b>Coasters Drive-In</b>, <b>Happy Friar</b>, Panda Express, Frontier Inn, Miss Keat's, Corral, Derby Dogs. Entrée + side every 90 min. $35 plan = no drinks; $49 Premium adds drinks + snacks. Barrels & Bites tastings NOT on plan.</p></details>
   <details><summary>Locker rides (4)</summary>
@@ -159,11 +205,32 @@ details p{color:var(--muted);margin:8px 0 0}
     <p>TT2 closes first (lowest threshold), then Millennium Force, Valravn, GateKeeper, WindSeeker. Windy forecast = ride those the moment you can.</p></details>
   <details><summary>Fast Lane bail-out rule</summary>
     <p>If by 11am Saturday all four headliners show 90+ min with no rain coming, buy single-day Fast Lane Plus in the official app. The big four are FL <b>Plus</b> only.</p></details>
-  <details><summary>Checklist data</summary>
-    <p>Checks, ratings, custom stops, and reordering all save to this device. <button onclick="if(confirm('Reset everything? (checks, ratings, custom stops, order)')){localStorage.removeItem('cpv2');location.reload()}" style="font:inherit;padding:6px 12px;border:1px solid var(--line);border-radius:8px;background:#fff;cursor:pointer">Reset all</button></p></details>
-  <p class="foot">Cedar Point run · Jun 13–15 2026 · wait data Queue-Times.com (park #50)<br>weather Open-Meteo · guide Anthropic API · plan verified 6/10/26</p>
+  <details><summary>App data</summary>
+    <p>Checks, ratings, custom stops, and order all save to this device. <button onclick="if(confirm('Reset everything?')){localStorage.removeItem('cpv2');location.reload()}" style="font:inherit;padding:6px 12px;border:1px solid var(--line);border-radius:8px;background:#fff;cursor:pointer">Reset all</button></p></details>
+  <p class="foot">Cedar Point run · Jun 13–15 2026 · waits Queue-Times.com · weather Open-Meteo · guide Anthropic API</p>
 </section>
 </main>
+<!-- add-stop sheet -->
+<div class="sheetbg" id="sheetbg"></div>
+<div class="sheet" id="sheet">
+  <h3>Add a stop to <span id="sheet-day"></span></h3>
+  <input type="text" id="pick-search" placeholder="Search rides, shows, food...">
+  <div class="cats" id="pick-cats"></div>
+  <div class="picklist" id="picklist"></div>
+  <div class="timebar" id="timebar" style="display:none">
+    <input type="text" id="pick-time" placeholder="Time (optional, e.g. 7:30 PM)">
+    <button id="pick-confirm">Add</button>
+  </div>
+</div>
+<!-- bottom nav -->
+<nav class="bnav" id="bnav">
+  <button data-v="plan" class="on"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M8 3v4M16 3v4M4 11h16"/></svg>Plan</button>
+  <button data-v="map"><svg viewBox="0 0 24 24"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14"/></svg>Map</button>
+  <button data-v="waits"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Waits</button>
+  <button data-v="ai"><svg viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></svg>Guide</button>
+  <button data-v="more"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>More</button>
+</nav>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 /* ================= DATA ================= */
 const DAYS={
@@ -172,165 +239,191 @@ sat:{label:'Saturday — back-gate blitz',sub:'10am–10pm · busiest day',
  route:['gateB','steve','mav','tt2','mag','mf','siren0','front','close'],
  steps:[
  {id:'sat_s1',sect:'Morning — rope drop'},
- {id:'sat1',t:'8:30 AM',title:'Leave hotel → Soak City lot',note:'At the lot by 9:00, at the back-gate rope by 9:40.',chips:[['zone','Logistics']]},
- {id:'sat2',t:'10:00 AM',title:'Steel Vengeance',note:'Lockers first (free, ~5 min). 15–30 min now vs 90–150 midday. Back row = max airtime.',chips:[['zone','Frontier Town'],['alert','Locker + detector']],ride:'Steel Vengeance'},
- {id:'sat3',t:'10:40 AM',title:'Maverick',note:'Next door. 60–80 min by 11am, so go straight there.',chips:[['zone','Frontier Town'],['alert','Locker']],ride:'Maverick'},
- {id:'sat4',t:'11:15 AM',title:'Top Thrill 2',note:'Ride it the first time the line is sane — most likely coaster to go down. Don\u2019t bank on a night ride.',chips:[['zone','Gemini Midway'],['alert','Locker + detector']],ride:'Top Thrill 2'},
- {id:'sat5',t:'12:00 PM',title:'Magnum XL-200 → Mine Ride → Gemini',note:'All short waits here. Ride both sides of Gemini if racing.',chips:[['zone','Gemini Midway']],ride:'Magnum'},
+ {id:'sat1',loc:'backGate',t:'8:30 AM',title:'Leave hotel → Soak City lot',note:'At the lot by 9:00, at the back-gate rope by 9:40.',chips:[['zone','Logistics']]},
+ {id:'sat2',loc:'steve',t:'10:00 AM',title:'Steel Vengeance',note:'Lockers first (free, ~5 min). 15–30 min now vs 90–150 midday. Back row = max airtime.',chips:[['zone','Frontier Town'],['alert','Locker + detector']],ride:'Steel Vengeance'},
+ {id:'sat3',loc:'maverick',t:'10:40 AM',title:'Maverick',note:'Next door. 60–80 min by 11am, so go straight there.',chips:[['zone','Frontier Town'],['alert','Locker']],ride:'Maverick'},
+ {id:'sat4',loc:'tt2',t:'11:15 AM',title:'Top Thrill 2',note:'Ride it the first time the line is sane — most likely coaster to go down. Don\u2019t bank on a night ride.',chips:[['zone','Gemini Midway'],['alert','Locker + detector']],ride:'Top Thrill 2'},
+ {id:'sat5',loc:'magnum',t:'12:00 PM',title:'Magnum XL-200 → Mine Ride → Gemini',note:'All short waits here. Ride both sides of Gemini if racing.',chips:[['zone','Gemini Midway']],ride:'Magnum'},
  {id:'sat_s2',sect:'Afternoon'},
- {id:'sat6',t:'1:00 PM',title:'Lunch — BackBeatQue',note:'Entrée + side on plan: smoked sirloin, pulled pork, ribs, rotisserie chicken. Beat the 1:30 crush.',chips:[['zone','Gemini Midway'],['meal','On dining plan']]},
- {id:'sat7',t:'2:00 PM',title:'Millennium Force',note:'Accept 45–60 min — its waits don\u2019t collapse until close.',chips:[['zone','Main Midway']],ride:'Millennium Force'},
- {id:'sat8',t:'4:00 PM',title:'Wild Mouse → Iron Dragon → Corkscrew → Rougarou',note:'Front/mid sweep while families peel off to dinner. 10–25 min each.',chips:[['zone','Main Midway']],ride:'Wild Mouse'},
- {id:'sat9',t:'4PM–CLOSE',title:'Barrels & Bites — Frontier Trail',note:'Food festival, included with admission (tastings extra, NOT on dining plan).',chips:[['zone','Frontier Trail']]},
+ {id:'sat6',loc:'backbeat',t:'1:00 PM',title:'Lunch — BackBeatQue',note:'Entrée + side on plan: smoked sirloin, pulled pork, ribs, rotisserie chicken. Beat the 1:30 crush.',chips:[['zone','Gemini Midway'],['meal','On dining plan']]},
+ {id:'sat7',loc:'mf',t:'2:00 PM',title:'Millennium Force',note:'Accept 45–60 min — its waits don\u2019t collapse until close.',chips:[['zone','Main Midway']],ride:'Millennium Force'},
+ {id:'sat8',loc:'wildmouse',t:'4:00 PM',title:'Wild Mouse → Iron Dragon → Corkscrew → Rougarou',note:'Front/mid sweep while families peel off to dinner. 10–25 min each.',chips:[['zone','Main Midway']],ride:'Wild Mouse'},
+ {id:'sat9',loc:'frontier',t:'4PM–CLOSE',title:'Barrels & Bites — Frontier Trail',note:'Food festival, included with admission (tastings extra, NOT on dining plan).',chips:[['zone','Frontier Trail']]},
  {id:'sat_s3',sect:'Evening'},
- {id:'sat10',t:'6:00 PM',title:'Dinner — Farmhouse Kitchen & Grill',note:'On plan: wood-fired steak, pasta, chicken & dumplings + biscuit. Near Maverick.',chips:[['zone','Frontier Town'],['meal','On dining plan']]},
- {id:'sat11',t:'7:00 PM',title:'GateKeeper → Valravn → Raptor',note:'Front-gate B&M trio. Waits drop sharply 5–7pm.',chips:[['zone','Main Midway']],ride:'GateKeeper'},
- {id:'sat12',t:'8:30 PM',title:'Closing hour — SteVe / Maverick re-rides',note:'Lines fall to 20–40 min. End the night where you parked.',chips:[['zone','Frontier Town']]}]},
+ {id:'sat10',loc:'farmhouse',t:'6:00 PM',title:'Dinner — Farmhouse Kitchen & Grill',note:'On plan: wood-fired steak, pasta, chicken & dumplings + biscuit. Near Maverick.',chips:[['zone','Frontier Town'],['meal','On dining plan']]},
+ {id:'sat11',loc:'gatekeeper',t:'7:00 PM',title:'GateKeeper → Valravn → Raptor',note:'Front-gate B&M trio. Waits drop sharply 5–7pm.',chips:[['zone','Main Midway']],ride:'GateKeeper'},
+ {id:'sat12',loc:'steve',t:'8:30 PM',title:'Closing hour — SteVe / Maverick re-rides',note:'Lines fall to 20–40 min. End the night where you parked.',chips:[['zone','Frontier Town']]}]},
 sun:{label:'Sunday — late start, night rides',sub:'~2pm–10pm · easy day',
  note:'<b>2pm arrival plan:</b> skip headliners until evening — afternoon is peak-wait territory. Today is credits cleanup, flats, food, and the closing-hour collapse. Siren\u2019s Curse waits for Monday rope drop.',
  route:['gateB','farm','sky','snoopy','bs','maxair','front','mf','steve'],
  steps:[
  {id:'sun_s1',sect:'Arrival + lunch'},
- {id:'sun1',t:'2:00 PM',title:'Park Soak City lot → back gate',note:'Tonight ends in Frontier Town — park near the exit you\u2019ll use.',chips:[['zone','Logistics']]},
- {id:'sun2',t:'2:15 PM',title:'Lunch — Farmhouse Kitchen & Grill',note:'On plan, right inside the back gate area, post-rush.',chips:[['zone','Frontier Town'],['meal','On dining plan']]},
+ {id:'sun1',loc:'backGate',t:'2:00 PM',title:'Park Soak City lot → back gate',note:'Tonight ends in Frontier Town — park near the exit you\u2019ll use.',chips:[['zone','Logistics']]},
+ {id:'sun2',loc:'farmhouse',t:'2:15 PM',title:'Lunch — Farmhouse Kitchen & Grill',note:'On plan, right inside the back gate area, post-rush.',chips:[['zone','Frontier Town'],['meal','On dining plan']]},
  {id:'sun_s2',sect:'Afternoon — credits + park life'},
- {id:'sun3',t:'3:15 PM',title:'Skyhawk → Thunder Canyon (optional, you WILL get wet)',note:'Frontier Town flats while you\u2019re back here.',chips:[['zone','Frontier Town']],ride:'Skyhawk'},
- {id:'sun4',t:'3:45 PM',title:'Woodstock Express + Wilderness Run',note:'Credits 16 & 17, walk-ons in Camp Snoopy (mid-park).',chips:[['zone','Camp Snoopy']],ride:'Woodstock Express'},
- {id:'sun5',t:'4:30 PM',title:'Blue Streak',note:'Credit 15 — the park\u2019s oldest (1964), FRONT of park near Raptor. Leaves only Siren\u2019s Curse.',chips:[['zone','Main Midway']],ride:'Blue Streak'},
- {id:'sun6',t:'5:00 PM',title:'MaXair → Power Tower',note:'Best flats in the park while coaster lines are peaked.',chips:[['zone','Main Midway']],ride:'maXair'},
+ {id:'sun3',loc:'skyhawk',t:'3:15 PM',title:'Skyhawk → Thunder Canyon (optional, you WILL get wet)',note:'Frontier Town flats while you\u2019re back here.',chips:[['zone','Frontier Town']],ride:'Skyhawk'},
+ {id:'sun4',loc:'snoopy',t:'3:45 PM',title:'Woodstock Express + Wilderness Run',note:'Credits 16 & 17, walk-ons in Camp Snoopy (mid-park).',chips:[['zone','Camp Snoopy']],ride:'Woodstock Express'},
+ {id:'sun5',loc:'bluestreak',t:'4:30 PM',title:'Blue Streak',note:'Credit 15 — the park\u2019s oldest (1964), FRONT of park near Raptor. Leaves only Siren\u2019s Curse.',chips:[['zone','Main Midway']],ride:'Blue Streak'},
+ {id:'sun6',loc:'maxair',t:'5:00 PM',title:'MaXair → Power Tower',note:'Best flats in the park while coaster lines are peaked.',chips:[['zone','Main Midway']],ride:'maXair'},
  {id:'sun_s3',sect:'Evening — the good part'},
- {id:'sun7',t:'6:00 PM',title:'Re-ride pick: GateKeeper / Valravn / Raptor dip',note:'The 5–7pm front-gate lull — you\u2019re already up front.',chips:[['zone','Main Midway']],ride:'Raptor'},
- {id:'sun8',t:'7:00 PM',title:'Dinner — Grand Pavilion or Coasters Drive-In',note:'Both on plan. Grand Pavilion: carved steak, lakefront. Coasters: 50s diner.',chips:[['meal','On dining plan']]},
- {id:'sun9',t:'8:00 PM',title:'Millennium Force night ride → Top Thrill 2',note:'Both transform after dark. TT2 only if running — check the chip.',chips:[['zone','Main Midway']],ride:'Millennium Force'},
- {id:'sun10',t:'9:00 PM',title:'Closing hour — SteVe + Maverick in the dark',note:'Graze Barrels & Bites on the Frontier Trail walk back. SteVe at night = best ride in the park. Exit to the car.',chips:[['zone','Frontier Town']],ride:'Steel Vengeance'}]},
+ {id:'sun7',loc:'raptor',t:'6:00 PM',title:'Re-ride pick: GateKeeper / Valravn / Raptor dip',note:'The 5–7pm front-gate lull — you\u2019re already up front.',chips:[['zone','Main Midway']],ride:'Raptor'},
+ {id:'sun8',loc:'grandpav',t:'7:00 PM',title:'Dinner — Grand Pavilion or Coasters Drive-In',note:'Both on plan. Grand Pavilion: carved steak, lakefront. Coasters: 50s diner.',chips:[['meal','On dining plan']]},
+ {id:'sun9',loc:'mf',t:'8:00 PM',title:'Millennium Force night ride → Top Thrill 2',note:'Both transform after dark. TT2 only if running — check the chip.',chips:[['zone','Main Midway']],ride:'Millennium Force'},
+ {id:'sun10',loc:'steve',t:'9:00 PM',title:'Closing hour — SteVe + Maverick in the dark',note:'Graze Barrels & Bites on the Frontier Trail walk back. SteVe at night = best ride in the park. Exit to the car.',chips:[['zone','Frontier Town']],ride:'Steel Vengeance'}]},
 mon:{label:'Monday — full day, lightest crowds',sub:'10am–close · MAIN gate',
  note:'<b>Front gate today, not the back lot.</b> Siren\u2019s Curse is your last credit and Monday rope drop is its only sub-30-min window. <b>Verify Monday\u2019s close time</b> in the official app — some June Mondays close 8pm.',
  route:['gateF','siren','tt2','mf','steve','wind','car'],
  steps:[
  {id:'mon_s1',sect:'Morning — finish the set'},
- {id:'mon1',t:'9:20 AM',title:'Main gate, at the rope by 9:45',chips:[['zone','Main Gate']]},
- {id:'mon2',t:'10:00 AM',title:'Siren\u2019s Curse — credit 18 of 18',note:'Straight there, no detours — near Iron Dragon. 90° tilt before the drop. Locker required.',chips:[['zone','Main Midway'],['alert','Locker']],ride:'Siren'},
- {id:'mon3',t:'10:30 AM',title:'Siren\u2019s Curse re-ride (line permitting)',note:'If the queue is still short, lap it now — no second chance later.',chips:[['zone','Main Midway']]},
- {id:'mon4',t:'11:00 AM',title:'Top Thrill 2 — safety-net slot',note:'Make-up window if it was down Sat/Sun. Otherwise bonus lap, 20–40 min.',chips:[['zone','Gemini Midway']],ride:'Top Thrill 2'},
- {id:'mon5',t:'11:45 AM',title:'Millennium Force',note:'30–45 min typical Monday late morning.',chips:[['zone','Main Midway']],ride:'Millennium Force'},
+ {id:'mon1',loc:'mainGate',t:'9:20 AM',title:'Main gate, at the rope by 9:45',chips:[['zone','Main Gate']]},
+ {id:'mon2',loc:'sirens',t:'10:00 AM',title:'Siren\u2019s Curse — credit 18 of 18',note:'Straight there, no detours — near Iron Dragon. 90° tilt before the drop. Locker required.',chips:[['zone','Main Midway'],['alert','Locker']],ride:'Siren'},
+ {id:'mon3',loc:'sirens',t:'10:30 AM',title:'Siren\u2019s Curse re-ride (line permitting)',note:'If the queue is still short, lap it now — no second chance later.',chips:[['zone','Main Midway']]},
+ {id:'mon4',loc:'tt2',t:'11:00 AM',title:'Top Thrill 2 — safety-net slot',note:'Make-up window if it was down Sat/Sun. Otherwise bonus lap, 20–40 min.',chips:[['zone','Gemini Midway']],ride:'Top Thrill 2'},
+ {id:'mon5',loc:'mf',t:'11:45 AM',title:'Millennium Force',note:'30–45 min typical Monday late morning.',chips:[['zone','Main Midway']],ride:'Millennium Force'},
  {id:'mon_s2',sect:'Afternoon — favorites on repeat'},
- {id:'mon6',t:'12:45 PM',title:'Lunch — BackBeatQue round 2',note:'On plan. Or Panda Express / Miss Keat\u2019s burrito bowl for a change.',chips:[['zone','Gemini Midway'],['meal','On dining plan']]},
- {id:'mon7',t:'1:45 PM',title:'Frontier Town block — SteVe + Maverick laps',note:'Lowest waits of your trip. Ride until satisfied.',chips:[['zone','Frontier Town']],ride:'Maverick'},
- {id:'mon8',t:'4:00 PM',title:'WindSeeker + Giant Wheel — Lake Erie views',note:'Golden hour over the lake. Sky Ride / Cedar Downs if missed.',chips:[['zone','Main Midway']],ride:'WindSeeker'},
- {id:'mon9',t:'5:00 PM',title:'Happy Friar — fresh-cut fries',note:'Institution since 1942. Full meal on plan; fries alone = Premium snack.',chips:[['zone','Gemini Midway'],['meal','On dining plan'],['snack','Premium snack']]},
+ {id:'mon6',loc:'backbeat',t:'12:45 PM',title:'Lunch — BackBeatQue round 2',note:'On plan. Or Panda Express / Miss Keat\u2019s burrito bowl for a change.',chips:[['zone','Gemini Midway'],['meal','On dining plan']]},
+ {id:'mon7',loc:'maverick',t:'1:45 PM',title:'Frontier Town block — SteVe + Maverick laps',note:'Lowest waits of your trip. Ride until satisfied.',chips:[['zone','Frontier Town']],ride:'Maverick'},
+ {id:'mon8',loc:'windseeker',t:'4:00 PM',title:'WindSeeker + Giant Wheel — Lake Erie views',note:'Golden hour over the lake. Sky Ride / Cedar Downs if missed.',chips:[['zone','Main Midway']],ride:'WindSeeker'},
+ {id:'mon9',loc:'happyfriar',t:'5:00 PM',title:'Happy Friar — fresh-cut fries',note:'Institution since 1942. Full meal on plan; fries alone = Premium snack.',chips:[['zone','Gemini Midway'],['meal','On dining plan'],['snack','Premium snack']]},
  {id:'mon_s3',sect:'Evening — finale'},
- {id:'mon10',t:'6:00 PM',title:'Dinner — anything left on your list',note:'Hugo\u2019s, Frontier Inn, Corral, Grand Pavilion — all on plan. Or one last Barrels & Bites graze.',chips:[['meal','On dining plan']]},
+ {id:'mon10',loc:'hugos',t:'6:00 PM',title:'Dinner — anything left on your list',note:'Hugo\u2019s, Frontier Inn, Corral, Grand Pavilion — all on plan. Or one last Barrels & Bites graze.',chips:[['meal','On dining plan']]},
  {id:'mon11',t:'7:00 PM',title:'Free play — chase the shortest lines',note:'Open the Waits tab and run the board. Monday evenings = walk-ons.',chips:[['zone','Your call']]},
- {id:'mon12',t:'CLOSE −1HR',title:'Final laps → Midway Carousel send-off',note:'Frontier Town last rides first, then the 1921 carousel as the true finale on the walk out the main gate (where the car is).',chips:[['zone','Main Midway']]}]}
+ {id:'mon12',loc:'carousel',t:'CLOSE −1HR',title:'Final laps → Midway Carousel send-off',note:'Frontier Town last rides first, then the 1921 carousel as the true finale on the walk out the main gate (where the car is).',chips:[['zone','Main Midway']]}]}
 };
 const PARK=[
  {sect:'Shows (check times in the official app)'},
- {id:'pk1',title:'Hoots & Hollers stand-up — Palace Theatre',note:'Fri–Sun evenings; the 9pm show is 21+. Great Sunday-night option.'},
- {id:'pk2',title:'New Jack Aldrich Theatre musical revue',note:'New for 2026 — pop hits from the Woodstock era to today.'},
- {id:'pk3',title:'Rock This Way — Red Garter Saloon',note:'Classic-rock revue, Frontier Town.'},
- {id:'pk4',title:'Country Crossroads / Lusty Lil\u2019s — Frontier Town',note:'Palace Theatre country show + western roadshow.'},
- {id:'pk5',title:'The Wild Mice brass band — Boardwalk',note:'Roaming brass, usually afternoons.'},
+ {id:'pk1',loc:'palace',title:'Hoots & Hollers stand-up — Palace Theatre',note:'Fri–Sun evenings; the 9pm show is 21+. Great Sunday-night option.'},
+ {id:'pk2',loc:'jackaldrich',title:'New Jack Aldrich Theatre musical revue',note:'New for 2026 — pop hits from the Woodstock era to today.'},
+ {id:'pk3',loc:'redgarter',title:'Rock This Way — Red Garter Saloon',note:'Classic-rock revue, Frontier Town.'},
+ {id:'pk4',loc:'palace',title:'Country Crossroads / Lusty Lil\u2019s — Frontier Town',note:'Palace Theatre country show + western roadshow.'},
+ {id:'pk5',loc:'beach',title:'The Wild Mice brass band — Boardwalk',note:'Roaming brass, usually afternoons.'},
  {sect:'Relaxing / take it in'},
- {id:'pk6',title:'Cedar Point Beach + Boardwalk stroll',note:'Free with admission, on Lake Erie behind the Boardwalk. Genuinely great sunset spot.'},
- {id:'pk7',title:'Sky Ride',note:'Gondola over the Main Midway — doubles as transit.'},
- {id:'pk8',title:'CP & Lake Erie Railroad',note:'Steam train loop with a stop in Frontier Town — sit-down break that moves you across the park.'},
- {id:'pk9',title:'Giant Wheel',note:'Lakeside views, near the Boardwalk.'},
- {id:'pk10',title:'Midway Carousel (1921) + Cedar Downs (1920)',note:'Cedar Downs is one of only two racing derby carousels left in the US — the horses actually race.'},
- {id:'pk11',title:'Frontier Trail',note:'Shaded, slower-paced; crafts, Barrels & Bites home base from 4pm.'},
+ {id:'pk6',loc:'beach',title:'Cedar Point Beach + Boardwalk stroll',note:'Free with admission, on Lake Erie behind the Boardwalk. Genuinely great sunset spot.'},
+ {id:'pk7',loc:'skyride',title:'Sky Ride',note:'Gondola over the Main Midway — doubles as transit.'},
+ {id:'pk8',loc:'railroad',title:'CP & Lake Erie Railroad',note:'Steam train loop with a stop in Frontier Town — sit-down break that moves you across the park.'},
+ {id:'pk9',loc:'giantwheel',title:'Giant Wheel',note:'Lakeside views, near the Boardwalk.'},
+ {id:'pk10',loc:'carousel',title:'Midway Carousel (1921) + Cedar Downs (1920)',note:'Cedar Downs is one of only two racing derby carousels left in the US — the horses actually race.'},
+ {id:'pk11',loc:'frontier',title:'Frontier Trail',note:'Shaded, slower-paced; crafts, Barrels & Bites home base from 4pm.'},
  {sect:'Flats & thrills'},
- {id:'pk12',title:'MaXair',note:'140-ft frisbee — best flat in the park.',ride:'maXair'},
- {id:'pk13',title:'Power Tower',note:'240-ft drop AND launch sides — do the drop side.',ride:'Power Tower'},
- {id:'pk14',title:'Skyhawk',note:'Giant screamin\u2019 swing, Frontier Town.',ride:'Skyhawk'},
- {id:'pk15',title:'WindSeeker',note:'301-ft swings, best Lake Erie panorama.',ride:'WindSeeker'},
- {id:'pk16',title:'Thunder Canyon',note:'Raft ride, only water ride left. You WILL be soaked — save for a hot afternoon.'},
- {id:'pk17',title:'Classics row: Matterhorn, Calypso, Ocean Motion, Troika, Scrambler, Dodgem',note:'Quick-hit walk-ons scattered through the midways.'},
+ {id:'pk12',loc:'maxair',title:'MaXair',note:'140-ft frisbee — best flat in the park.',ride:'maXair'},
+ {id:'pk13',loc:'powertower',title:'Power Tower',note:'240-ft drop AND launch sides — do the drop side.',ride:'Power Tower'},
+ {id:'pk14',loc:'skyhawk',title:'Skyhawk',note:'Giant screamin\u2019 swing, Frontier Town.',ride:'Skyhawk'},
+ {id:'pk15',loc:'windseeker',title:'WindSeeker',note:'301-ft swings, best Lake Erie panorama.',ride:'WindSeeker'},
+ {id:'pk16',loc:'thunder',title:'Thunder Canyon',note:'Raft ride, only water ride left. You WILL be soaked — save for a hot afternoon.'},
+ {id:'pk17',loc:'snoopy',title:'Classics row: Matterhorn, Calypso, Ocean Motion, Troika, Scrambler, Dodgem',note:'Quick-hit walk-ons scattered through the midways.'},
  {id:'pk18',title:'SlingShot (upcharge)',note:'Extra $ — not on admission. Skip unless you must.'}
 ];
+/* ====== LOCATIONS (approx; OSM basemap is exact) ====== */
+const LOC={mainGate:[41.4776,-82.6835],backGate:[41.4887,-82.6828],
+ steve:[41.4849,-82.6930],maverick:[41.4839,-82.6917],tt2:[41.4840,-82.6862],
+ magnum:[41.4873,-82.6824],mf:[41.4808,-82.6870],gemini:[41.4861,-82.6843],
+ sirens:[41.4818,-82.6868],gatekeeper:[41.4782,-82.6838],raptor:[41.4792,-82.6848],
+ valravn:[41.4789,-82.6857],rougarou:[41.4799,-82.6861],bluestreak:[41.4789,-82.6826],
+ corkscrew:[41.4833,-82.6842],wildmouse:[41.4827,-82.6820],minerige:[41.4845,-82.6890],
+ snoopy:[41.4823,-82.6850],maxair:[41.4836,-82.6838],powertower:[41.4851,-82.6847],
+ windseeker:[41.4866,-82.6812],skyhawk:[41.4836,-82.6925],thunder:[41.4843,-82.6906],
+ farmhouse:[41.4853,-82.6921],backbeat:[41.4864,-82.6836],grandpav:[41.4815,-82.6815],
+ hugos:[41.4794,-82.6852],coastersdrive:[41.4856,-82.6830],happyfriar:[41.4858,-82.6841],
+ palace:[41.4849,-82.6913],redgarter:[41.4846,-82.6909],jackaldrich:[41.4786,-82.6830],
+ beach:[41.4830,-82.6800],carousel:[41.4781,-82.6833],railroad:[41.4787,-82.6843],
+ skyride:[41.4790,-82.6840],giantwheel:[41.4838,-82.6812],frontier:[41.4844,-82.6900],
+ irondragon:[41.4813,-82.6864]};
 
-/* ================= STATE ================= */
+/* ====== ADD-STOP CATALOG ====== */
+const CAT=[
+ ['Steel Vengeance','Coasters','Steel Vengeance','steve'],['Maverick','Coasters','Maverick','maverick'],
+ ['Top Thrill 2','Coasters','Top Thrill 2','tt2'],["Siren's Curse",'Coasters','Siren','sirens'],
+ ['Millennium Force','Coasters','Millennium Force','mf'],['Valravn','Coasters','Valravn','valravn'],
+ ['GateKeeper','Coasters','GateKeeper','gatekeeper'],['Raptor','Coasters','Raptor','raptor'],
+ ['Rougarou','Coasters','Rougarou','rougarou'],['Magnum XL-200','Coasters','Magnum','magnum'],
+ ['Gemini','Coasters','Gemini','gemini'],['Blue Streak','Coasters','Blue Streak','bluestreak'],
+ ['Iron Dragon','Coasters','Iron Dragon','irondragon'],['Cedar Creek Mine Ride','Coasters','Cedar Creek','minerige'],
+ ['Corkscrew','Coasters','Corkscrew','corkscrew'],['Wild Mouse','Coasters','Wild Mouse','wildmouse'],
+ ['Woodstock Express','Coasters','Woodstock','snoopy'],['Wilderness Run','Coasters','Wilderness Run','snoopy'],
+ ['MaXair','Flats','maXair','maxair'],['Power Tower','Flats','Power Tower','powertower'],
+ ['Skyhawk','Flats','Skyhawk','skyhawk'],['WindSeeker','Flats','WindSeeker','windseeker'],
+ ['Thunder Canyon (you WILL get wet)','Flats',null,'thunder'],['Giant Wheel','Flats',null,'giantwheel'],
+ ['Matterhorn / Calypso / Scrambler classics','Flats',null,'maxair'],['Dodgem bumper cars','Flats',null,'maxair'],
+ ['Hoots & Hollers comedy — Palace','Shows',null,'palace'],['Jack Aldrich Theatre revue','Shows',null,'jackaldrich'],
+ ['Rock This Way — Red Garter','Shows',null,'redgarter'],["Lusty Lil's Western Roadshow",'Shows',null,'palace'],
+ ['Wild Mice brass band — Boardwalk','Shows',null,'beach'],
+ ['BackBeatQue (dining plan)','Food',null,'backbeat'],['Farmhouse Kitchen & Grill (plan)','Food',null,'farmhouse'],
+ ['Grand Pavilion (plan)','Food',null,'grandpav'],["Hugo's Italian Kitchen (plan)",'Food',null,'hugos'],
+ ["Coasters Drive-In (plan)",'Food',null,'coastersdrive'],['Happy Friar fries (plan)','Food',null,'happyfriar'],
+ ['Panda Express (plan)','Food',null,'maxair'],["Miss Keat's Smokehouse (plan)",'Food',null,'frontier'],
+ ['Barrels & Bites graze — Frontier Trail','Food',null,'frontier'],
+ ['Cedar Point Beach + Boardwalk','Classics',null,'beach'],['Midway Carousel (1921)','Classics',null,'carousel'],
+ ['Cedar Downs racing derby (1920)','Classics',null,'irondragon'],['CP & Lake Erie Railroad','Classics',null,'railroad'],
+ ['Sky Ride','Classics',null,'skyride'],['Frontier Trail stroll','Classics',null,'frontier']
+];
+
+/* ====== STATE ====== */
 const LS='cpv2';
 let S={checks:{},ratings:{},order:{},custom:{sat:[],sun:[],mon:[]},key:''};
 try{S=Object.assign(S,JSON.parse(localStorage.getItem(LS)||'{}'))}catch(e){}
 function save(){try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}}
-let lastRides=null;
+let lastRides=null,lastWx=null;
+let selDay=(function(){const g=new Date().getDay();return g===0?'sun':g===1?'mon':'sat'})();
 
-/* ================= MAP ================= */
-const PTS={gateB:[345,30,'Back gate'],gateF:[60,228,'Main gate'],car:[60,228,'Car'],
- steve:[318,55,'SteVe'],mav:[285,62,'Mav'],tt2:[240,72,'TT2'],mag:[220,92,'Magnum'],
- mf:[195,100,'MF'],gem:[172,112,'Gemini'],siren:[140,138,'Siren\u2019s C.'],siren0:[140,138,''],
- front:[112,178,'GK/Val/Rap'],close:[300,58,''],farm:[300,48,'Farmhouse'],
- sky:[330,68,'Skyhawk'],snoopy:[185,118,'Camp Snoopy'],bs:[125,160,'Blue Streak'],
- maxair:[160,128,'MaXair'],wind:[150,118,'WindSeeker']};
-function mapSVG(day){
- const route=DAYS[day].route;
- let dots='',n=0;
- route.forEach(k=>{const p=PTS[k];if(!p)return;
-  if(p[2]===''){return}
-  n++;
-  dots+=`<circle cx="${p[0]}" cy="${p[1]}" r="9" fill="#B5482A"/><text x="${p[0]}" y="${p[1]+3.5}" font-size="9" fill="#fff" font-weight="700" text-anchor="middle">${n}</text>`+
-        `<text x="${p[0]}" y="${p[1]+20}" font-size="8" fill="#1A2530" text-anchor="middle">${p[2]}</text>`;});
- let path='';const pts=route.map(k=>PTS[k]).filter(Boolean);
- if(pts.length>1){path='<path d="M'+pts.map(p=>p[0]+','+p[1]).join(' L')+'" fill="none" stroke="#B5482A" stroke-width="1.5" stroke-dasharray="4 3" opacity=".5"/>'}
- return `<div class="mapwrap"><svg viewBox="0 0 360 250" role="img" aria-label="Route map">
- <path d="M30,235 L70,140 Q90,90 150,55 Q220,15 330,18 L340,55 Q250,50 190,85 Q130,120 110,175 L95,238 Z" fill="#EAF1EE" stroke="#C9D6D0" stroke-width="2"/>
- <text x="295" y="14" font-size="9" fill="#5C6B77" font-weight="700">FRONTIER TOWN ↑</text>
- <text x="150" y="48" font-size="9" fill="#5C6B77" font-weight="700">GEMINI MIDWAY</text>
- <text x="78" y="132" font-size="9" fill="#5C6B77" font-weight="700">MAIN MIDWAY</text>
- ${path}${dots}</svg>
- <p>Today\u2019s route in order. Schematic — main gate (bottom) to Frontier Town (top) is a 20+ min walk.</p></div>`;
-}
-
-/* ================= RENDER ================= */
+/* ====== RENDER ====== */
 function esc(s){return (s||'').replace(/</g,'&lt;')}
+function gmLink(loc){if(!loc||!LOC[loc])return '';
+ const [a,b]=LOC[loc];
+ return `<a class="gm" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${a},${b}" title="Open in Google Maps">⌖</a>`}
 function stepHTML(it,day){
- if(it.sect)return `<div class="sect"><span>${esc(it.sect)}</span></div>`;
+ if(it.sect)return `<div class="sect" data-oid="s_${esc(it.sect)}">${esc(it.sect)}</div>`;
  const done=S.checks[it.id]?' done':'';
  const chips=(it.chips||[]).map(c=>`<span class="chip ${c[0]}">${esc(c[1])}</span>`).join('');
  const wait=it.ride?`<span class="wait" data-w="${esc(it.ride)}">—</span>`:'';
- const del=it.cust?`<button class="del" data-del="${it.id}" data-day="${day}">✕</button>`:'';
- const mv=day?`<div class="mv"><button data-mv="up" data-id="${it.id}" data-day="${day}">↑</button><button data-mv="dn" data-id="${it.id}" data-day="${day}">↓</button>${del}</div>`:'';
- return `<div class="step${done}" data-k="${it.id}">
+ const del=it.cust?`<button class="del2" data-del="${it.id}" data-day="${day}">✕</button>`:'';
+ const tools=day?`<div class="railrow">${gmLink(it.loc)}${del}<span class="drag" data-day="${day}" title="Drag to reorder">≡</span></div>`:`<div class="railrow">${gmLink(it.loc)}</div>`;
+ return `<div class="step${done}" data-k="${it.id}" data-oid="${it.id}">
   <input type="checkbox" class="chk" ${S.checks[it.id]?'checked':''} data-chk="${it.id}">
   <div class="t-body">${it.t?`<div class="t-time">${esc(it.t)}</div>`:''}
   <div class="t-title">${esc(it.title)}</div>
   ${it.note?`<p class="t-note">${esc(it.note)}</p>`:''}
   ${chips?`<div class="chips">${chips}</div>`:''}</div>
-  <div class="rail">${wait}${mv}</div></div>`;
+  <div class="rail">${wait}${tools}</div></div>`;
 }
 function dayItems(day){
  const base=DAYS[day].steps.concat(S.custom[day]||[]);
- const ord=S.order[day];
- if(!ord)return base;
+ const ord=S.order[day];if(!ord)return base;
  const map={};base.forEach(b=>map[b.id||('s_'+b.sect)]=b);
  const out=[];ord.forEach(id=>{if(map[id]){out.push(map[id]);delete map[id]}});
- Object.values(map).forEach(b=>out.push(b));
- return out;
+ Object.values(map).forEach(b=>out.push(b));return out;
 }
-function renderDay(day){
- const d=DAYS[day],el=document.getElementById('p-'+day);
- el.innerHTML=`<div class="daybar"><h2>${d.label}</h2><span>${d.sub}</span></div>
- <div class="note">${d.note}</div>${mapSVG(day)}
- ${dayItems(day).map(it=>stepHTML(it,day)).join('')}
- <button class="addlink" data-add="${day}">+ Add a stop to ${day==='sat'?'Saturday':day==='sun'?'Sunday':'Monday'}</button>
- <div class="addform" id="form-${day}">
-  <input placeholder="Time (e.g. 3:30 PM)" id="f-t-${day}">
-  <input placeholder="What (e.g. Dodgem bumper cars)" id="f-title-${day}">
-  <input placeholder="Ride name for live wait chip (optional, e.g. Rougarou)" id="f-ride-${day}">
-  <textarea placeholder="Note (optional)" rows="2" id="f-note-${day}"></textarea>
-  <div class="row"><button class="save" data-save="${day}">Add stop</button><button class="cancel" data-cancel="${day}">Cancel</button></div>
- </div>`;
+function renderPlan(){
+ const d=DAYS[selDay];
+ document.getElementById('plan-body').innerHTML=
+ `<div class="daybar"><h2>${d.label}</h2><span>${d.sub}</span></div>
+ <div class="note">${d.note}</div>
+ ${dayItems(selDay).map(it=>stepHTML(it,selDay)).join('')}
+ <button class="addlink" id="open-picker">+ Add a stop</button>`;
  applyWaits();
+ document.querySelectorAll('#dayseg button').forEach(b=>b.classList.toggle('on',b.dataset.d===selDay));
+ if(mapInit)drawRoute();
 }
 function renderPark(){
- const el=document.getElementById('p-park');
- el.innerHTML=`<div class="daybar"><h2>Everything else</h2><span>shows · classics · flats</span></div>
- <div class="note blue"><b>Show times vary daily</b> — confirm in the official Cedar Point app morning-of. Everything here is checkable; weave items into your days with each day\u2019s “add a stop”.</div>
- ${PARK.map(it=>stepHTML(it,null)).join('')}`;
+ document.getElementById('park-body').innerHTML=PARK.map(it=>stepHTML(it,null)).join('');
  applyWaits();
 }
-function renderAll(){['sat','sun','mon'].forEach(renderDay);renderPark();renderRanks()}
 
-/* ================= EVENTS (delegated) ================= */
+/* ====== NAV ====== */
+const views=document.querySelectorAll('.view');
+document.getElementById('bnav').addEventListener('click',e=>{
+ const b=e.target.closest('button');if(!b)return;
+ document.querySelectorAll('#bnav button').forEach(x=>x.classList.remove('on'));
+ views.forEach(x=>x.classList.remove('on'));
+ b.classList.add('on');document.getElementById('v-'+b.dataset.v).classList.add('on');
+ window.scrollTo({top:0});
+ if(b.dataset.v==='waits'&&!lastRides)loadAll();
+ if(b.dataset.v==='map')openMap();
+});
+document.getElementById('dayseg').addEventListener('click',e=>{
+ const b=e.target.closest('button');if(!b)return;selDay=b.dataset.d;renderPlan();
+});
+
+/* ====== SHARED EVENTS ====== */
 document.addEventListener('change',e=>{
  const id=e.target.dataset&&e.target.dataset.chk;
  if(id){S.checks[id]=e.target.checked;save();
@@ -338,39 +431,155 @@ document.addEventListener('change',e=>{
 });
 document.addEventListener('click',e=>{
  const t=e.target;
- if(t.dataset.add){document.getElementById('form-'+t.dataset.add).classList.add('on');t.style.display='none'}
- if(t.dataset.cancel){renderDay(t.dataset.cancel)}
- if(t.dataset.save){const d=t.dataset.save;
-  const title=document.getElementById('f-title-'+d).value.trim();if(!title)return;
-  const it={id:'c'+Date.now(),t:document.getElementById('f-t-'+d).value.trim(),title,
-   note:document.getElementById('f-note-'+d).value.trim(),cust:true,chips:[['zone','Custom']]};
-  const ride=document.getElementById('f-ride-'+d).value.trim();if(ride)it.ride=ride;
-  S.custom[d]=S.custom[d]||[];S.custom[d].push(it);
-  S.order[d]=dayItems(d).map(x=>x.id||('s_'+x.sect));save();renderDay(d)}
+ if(t.id==='open-picker')openPicker();
  if(t.dataset.del){const d=t.dataset.day;
   S.custom[d]=(S.custom[d]||[]).filter(x=>x.id!==t.dataset.del);
   if(S.order[d])S.order[d]=S.order[d].filter(x=>x!==t.dataset.del);
-  save();renderDay(d)}
- if(t.dataset.mv){const d=t.dataset.day,id=t.dataset.id;
-  const ids=dayItems(d).map(x=>x.id||('s_'+x.sect));
-  const i=ids.indexOf(id);if(i<0)return;
-  const j=t.dataset.mv==='up'?i-1:i+1;if(j<0||j>=ids.length)return;
-  [ids[i],ids[j]]=[ids[j],ids[i]];S.order[d]=ids;save();renderDay(d);
-  const el=document.querySelector(`.step[data-k="${id}"]`);if(el&&el.scrollIntoView)el.scrollIntoView({block:"center"})}
+  save();renderPlan()}
  if(t.dataset.star){const r=t.dataset.ride,v=+t.dataset.star;
   S.ratings[r]=(S.ratings[r]===v)?0:v;save();drawBoard();renderRanks()}
 });
 
-/* ================= TABS ================= */
-const tabs=document.querySelectorAll('.tab'),panels=document.querySelectorAll('.panel');
-tabs.forEach(t=>t.addEventListener('click',()=>{
- tabs.forEach(x=>x.classList.remove('on'));panels.forEach(x=>x.classList.remove('on'));
- t.classList.add('on');document.getElementById('p-'+t.dataset.p).classList.add('on');
- window.scrollTo({top:0});
- if(t.dataset.p==='waits'&&!lastRides)loadAll();
-}));
+/* ====== DRAG & DROP (pointer events, handle-initiated) ====== */
+let dragEl=null,dragDay=null,dragOffY=0;
+document.addEventListener('pointerdown',e=>{
+ const h=e.target.closest('.drag');if(!h)return;
+ dragEl=h.closest('.step');dragDay=h.dataset.day;
+ const r=dragEl.getBoundingClientRect();dragOffY=e.clientY-r.top;
+ dragEl.classList.add('dragging');
+ dragEl.style.width=r.width+'px';
+ e.preventDefault();
+},{passive:false});
+document.addEventListener('pointermove',e=>{
+ if(!dragEl)return;e.preventDefault();
+ dragEl.style.position='fixed';dragEl.style.top=(e.clientY-dragOffY)+'px';
+ dragEl.style.left=dragEl.parentElement.getBoundingClientRect().left+'px';
+ const sibs=[...dragEl.parentElement.querySelectorAll('.step:not(.dragging)')];
+ let after=null;
+ for(const s of sibs){const r=s.getBoundingClientRect();
+  if(e.clientY>r.top+r.height/2)after=s}
+ if(after)after.insertAdjacentElement('afterend',dragEl);
+ else{const first=dragEl.parentElement.querySelector('.step:not(.dragging)');
+  if(first)first.insertAdjacentElement('beforebegin',dragEl)}
+ // auto-scroll near edges
+ if(e.clientY<90)window.scrollBy(0,-9);
+ if(e.clientY>window.innerHeight-150)window.scrollBy(0,9);
+},{passive:false});
+function endDrag(){
+ if(!dragEl)return;
+ dragEl.classList.remove('dragging');
+ dragEl.style.position='';dragEl.style.top='';dragEl.style.left='';dragEl.style.width='';
+ const ids=[...document.querySelectorAll('#plan-body [data-oid]')].map(x=>x.dataset.oid);
+ S.order[dragDay]=ids;save();
+ dragEl=null;if(mapInit)drawRoute();
+}
+document.addEventListener('pointerup',endDrag);
+document.addEventListener('pointercancel',endDrag);
 
-/* ================= CORS-PROOF FETCH ================= */
+/* ====== ADD-STOP PICKER ====== */
+const CATS=['All','Coasters','Flats','Shows','Food','Classics'];
+let pickCat='All',pickSel=null;
+function openPicker(){
+ document.getElementById('sheet-day').textContent=selDay==='sat'?'Saturday':selDay==='sun'?'Sunday':'Monday';
+ document.getElementById('pick-search').value='';pickCat='All';pickSel=null;
+ document.getElementById('timebar').style.display='none';
+ document.getElementById('pick-cats').innerHTML=CATS.map(c=>
+  `<button class="${c===pickCat?'on':''}" data-cat="${c}">${c}</button>`).join('');
+ drawPicks();
+ document.getElementById('sheetbg').classList.add('on');
+ document.getElementById('sheet').classList.add('on');
+}
+function closePicker(){
+ document.getElementById('sheetbg').classList.remove('on');
+ document.getElementById('sheet').classList.remove('on');
+}
+function drawPicks(){
+ const q=document.getElementById('pick-search').value.toLowerCase();
+ const list=CAT.filter(c=>(pickCat==='All'||c[1]===pickCat)&&(!q||c[0].toLowerCase().includes(q)));
+ let html=`<div class="pick" data-pick="-1"><div><div class="pn">Custom stop…</div><div class="pc">type your own</div></div><span class="add">＋</span></div>`;
+ html+=list.map(c=>{const i=CAT.indexOf(c);
+  return `<div class="pick" data-pick="${i}"><div><div class="pn">${esc(c[0])}</div><div class="pc">${c[1]}</div></div><span class="add">＋</span></div>`}).join('');
+ document.getElementById('picklist').innerHTML=html;
+}
+document.getElementById('sheetbg').addEventListener('click',closePicker);
+document.getElementById('pick-search').addEventListener('input',drawPicks);
+document.getElementById('pick-cats').addEventListener('click',e=>{
+ const b=e.target.closest('button');if(!b)return;pickCat=b.dataset.cat;
+ document.querySelectorAll('#pick-cats button').forEach(x=>x.classList.toggle('on',x.dataset.cat===pickCat));
+ drawPicks();
+});
+document.getElementById('picklist').addEventListener('click',e=>{
+ const p=e.target.closest('.pick');if(!p)return;
+ const i=+p.dataset.pick;
+ if(i===-1){const name=prompt('Stop name:');if(!name)return;pickSel={custom:name}}
+ else pickSel={cat:CAT[i]};
+ document.getElementById('timebar').style.display='flex';
+ document.getElementById('pick-time').focus();
+ [...document.querySelectorAll('.pick')].forEach(x=>x.style.borderColor='');
+ p.style.borderColor='var(--ok)';
+});
+document.getElementById('pick-confirm').addEventListener('click',()=>{
+ if(!pickSel)return;
+ const t=document.getElementById('pick-time').value.trim();
+ const it={id:'c'+Date.now(),t,cust:true,chips:[['zone','Custom']]};
+ if(pickSel.custom){it.title=pickSel.custom}
+ else{const c=pickSel.cat;it.title=c[0];it.chips=[['zone',c[1]]];
+  if(c[2])it.ride=c[2];if(c[3])it.loc=c[3];
+  if(c[1]==='Food'&&c[0].includes('plan'))it.chips.push(['meal','On dining plan'])}
+ S.custom[selDay]=S.custom[selDay]||[];S.custom[selDay].push(it);
+ if(S.order[selDay])S.order[selDay].push(it.id);
+ save();closePicker();renderPlan();
+});
+
+/* ====== LEAFLET MAP ====== */
+let map=null,mapInit=false,routeLayer=null,meMarker=null,meCircle=null,watching=null;
+function openMap(){
+ document.getElementById('map-title').textContent='Route — '+(selDay==='sat'?'Saturday':selDay==='sun'?'Sunday':'Monday');
+ if(typeof L==='undefined'){document.getElementById('map').innerHTML='<p class="meta" style="padding:20px">Map library could not load — check signal.</p>';return}
+ if(!mapInit){
+  map=L.map('map',{zoomControl:true}).setView([41.4822,-82.6862],15);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,
+   attribution:'© OpenStreetMap contributors'}).addTo(map);
+  mapInit=true;
+ }
+ setTimeout(()=>{map.invalidateSize();drawRoute()},80);
+}
+function drawRoute(){
+ if(!mapInit)return;
+ if(routeLayer)routeLayer.remove();
+ routeLayer=L.layerGroup().addTo(map);
+ const pts=[];let n=0;
+ dayItems(selDay).forEach(it=>{
+  if(!it.loc||!LOC[it.loc]||S.checks[it.id])return;
+  n++;const ll=LOC[it.loc];pts.push(ll);
+  L.marker(ll,{icon:L.divIcon({className:'',iconSize:[26,26],iconAnchor:[13,13],
+   html:`<div style="width:26px;height:26px;border-radius:50%;background:#B5482A;color:#fff;display:flex;align-items:center;justify-content:center;font:700 12px sans-serif;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35)">${n}</div>`})})
+   .addTo(routeLayer).bindPopup(`<b>${n}. ${esc(it.title)}</b>${it.t?'<br>'+esc(it.t):''}`);
+ });
+ if(pts.length>1)L.polyline(pts,{color:'#B5482A',weight:3,dashArray:'6 6',opacity:.7}).addTo(routeLayer);
+ if(pts.length)map.fitBounds(L.latLngBounds(pts).pad(0.18));
+}
+document.getElementById('btn-fit').addEventListener('click',drawRoute);
+document.getElementById('btn-locate').addEventListener('click',()=>{
+ const btn=document.getElementById('btn-locate');
+ if(watching!==null){navigator.geolocation.clearWatch(watching);watching=null;
+  btn.classList.remove('live');btn.textContent='⌖ Locate me';return}
+ if(!navigator.geolocation){btn.textContent='No GPS available';return}
+ btn.textContent='Locating…';
+ watching=navigator.geolocation.watchPosition(p=>{
+  const ll=[p.coords.latitude,p.coords.longitude];
+  if(!meMarker){
+   meMarker=L.marker(ll,{icon:L.divIcon({className:'',iconSize:[18,18],iconAnchor:[9,9],
+    html:'<div style="width:18px;height:18px;border-radius:50%;background:#2D7DD2;border:3px solid #fff;box-shadow:0 0 0 2px rgba(45,125,210,.4)"></div>'})}).addTo(map);
+   meCircle=L.circle(ll,{radius:p.coords.accuracy,color:'#2D7DD2',weight:1,fillOpacity:.08}).addTo(map);
+   map.setView(ll,17);
+  }else{meMarker.setLatLng(ll);meCircle.setLatLng(ll);meCircle.setRadius(p.coords.accuracy)}
+  btn.classList.add('live');btn.textContent='● Tracking (tap to stop)';
+ },err=>{btn.textContent='Location denied — check permissions';watching=null},
+ {enableHighAccuracy:true,maximumAge:5000,timeout:15000});
+});
+
+/* ====== CORS-PROOF FETCH ====== */
 const QT='https://queue-times.com/parks/50/queue_times.json';
 async function fetchJSON(url){
  const tries=[
@@ -379,12 +588,10 @@ async function fetchJSON(url){
   ()=>fetch('https://api.allorigins.win/raw?url='+encodeURIComponent(url),{cache:'no-store'}).then(r=>{if(!r.ok)throw 0;return r.json()}),
   ()=>fetch('https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(url),{cache:'no-store'}).then(r=>{if(!r.ok)throw 0;return r.json()})
  ];
- let err;
- for(const t of tries){try{return await t()}catch(e){err=e}}
- throw err;
+ let err;for(const t of tries){try{return await t()}catch(e){err=e}}throw err;
 }
 
-/* ================= WAITS ================= */
+/* ====== WAITS + RATINGS ====== */
 const COASTERS=['Steel Vengeance','Maverick','Top Thrill 2','Siren','Millennium Force','Valravn','GateKeeper','Raptor','Rougarou','Magnum','Gemini','Blue Streak','Iron Dragon','Cedar Creek','Corkscrew','Wild Mouse','Woodstock','Wilderness Run','maXair','Power Tower','WindSeeker','Skyhawk'];
 function cls(w){return w<=30?'ok':w<=60?'warn':'bad'}
 function findRide(name){if(!lastRides)return null;
@@ -396,11 +603,9 @@ function applyWaits(){
   if(!m.is_open){ch.textContent='CLOSED';ch.className='wait closed'}
   else{ch.textContent=m.wait_time+' min';ch.className='wait '+cls(m.wait_time)}});
 }
-function stars(name){
- const v=S.ratings[name]||0;let h='<div class="stars">';
+function stars(name){const v=S.ratings[name]||0;let h='<div class="stars">';
  for(let i=1;i<=5;i++)h+=`<span class="${i<=v?'on':''}" data-star="${i}" data-ride="${name}">★</span>`;
- return h+'</div>';
-}
+ return h+'</div>'}
 function drawBoard(){
  if(!lastRides)return;
  const matched=[];
@@ -413,19 +618,17 @@ function drawBoard(){
 function renderRanks(){
  const el=document.getElementById('ranks');
  const rated=Object.entries(S.ratings).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]);
- if(!rated.length){el.innerHTML='<p class="meta">Rate coasters above and your leaderboard builds here.</p>';return}
+ if(!rated.length){el.innerHTML='<p class="meta">Rate coasters above to build your leaderboard.</p>';return}
  el.innerHTML=rated.map((x,i)=>
-  `<div class="step"><div class="t-body"><div class="t-title">#${i+1} ${x[0]}</div></div>
+  `<div class="step"><div class="t-body"><div class="t-title">#${i+1} ${esc(x[0])}</div></div>
   <span class="wait" style="background:#FBEFD2;color:#9A6A00">${'★'.repeat(x[1])}</span></div>`).join('');
 }
 
-/* ================= WEATHER ================= */
-let lastWx=null;
+/* ====== WEATHER ====== */
 const WMO={0:'Clear',1:'Mostly clear',2:'Partly cloudy',3:'Overcast',45:'Fog',51:'Drizzle',53:'Drizzle',55:'Drizzle',61:'Light rain',63:'Rain',65:'Heavy rain',80:'Showers',81:'Showers',82:'Heavy showers',95:'Thunderstorm',96:'Thunderstorm',99:'Thunderstorm'};
 async function loadWx(){
  const u='https://api.open-meteo.com/v1/forecast?latitude=41.4822&longitude=-82.6835&current=temperature_2m,apparent_temperature,precipitation,wind_speed_10m,wind_gusts_10m,weather_code&hourly=precipitation_probability&forecast_days=1&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=America%2FNew_York';
- try{
-  const w=await fetchJSON(u);lastWx=w;
+ try{const w=await fetchJSON(u);lastWx=w;
   const c=w.current,hr=new Date().getHours();
   const pp=(w.hourly&&w.hourly.precipitation_probability)?w.hourly.precipitation_probability[Math.min(hr+1,23)]:null;
   const windWarn=c.wind_gusts_10m>=30?' ⚠️ gusts may close TT2/MF/Valravn':'';
@@ -434,23 +637,21 @@ async function loadWx(){
  }catch(e){document.getElementById('wx').textContent='Weather unavailable — check signal.'}
 }
 
-/* ================= LOAD ================= */
+/* ====== LOAD ====== */
 async function loadAll(){
  const btn=document.getElementById('refresh'),up=document.getElementById('updated');
- btn.disabled=true;btn.textContent='Loading…';
- loadWx();
- try{
-  const data=await fetchJSON(QT);
+ btn.disabled=true;btn.textContent='Loading…';loadWx();
+ try{const data=await fetchJSON(QT);
   const rides=[];(data.lands||[]).forEach(l=>(l.rides||[]).forEach(r=>rides.push(r)));
   (data.rides||[]).forEach(r=>rides.push(r));
   lastRides=rides;applyWaits();drawBoard();
-  up.textContent='Updated '+new Date().toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})+' · sorted shortest first';
- }catch(e){up.textContent='Could not reach Queue-Times via any route — check signal and retry.'}
+  up.textContent='Updated '+new Date().toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})+' · shortest first';
+ }catch(e){up.textContent='Could not reach Queue-Times via any route — retry.'}
  btn.disabled=false;btn.textContent='↻ Refresh waits + weather';
 }
 document.getElementById('refresh').addEventListener('click',loadAll);
 
-/* ================= AI GUIDE ================= */
+/* ====== AI GUIDE ====== */
 const keyEl=document.getElementById('ai-key');
 keyEl.value=S.key||'';
 keyEl.addEventListener('change',()=>{S.key=keyEl.value.trim();save()});
@@ -459,9 +660,10 @@ document.querySelectorAll('.quick button').forEach(b=>b.addEventListener('click'
 document.getElementById('ai-go').addEventListener('click',askAI);
 function context(){
  const now=new Date();
- const dayKey=now.getDay()===0?'sun':now.getDay()===1?'mon':'sat';
- const remaining=dayItems(dayKey).filter(x=>x.title&&!S.checks[x.id])
-  .map(x=>`${x.t||''} ${x.title}`).slice(0,14).join('; ');
+ const remaining=dayItems(selDay).filter(x=>x.title&&!S.checks[x.id])
+  .map(x=>`[${x.id}] ${x.t||''} ${x.title}`).slice(0,16).join('; ');
+ const shows=PARK.filter(x=>x.id&&['pk1','pk2','pk3','pk4','pk5'].includes(x.id))
+  .map(x=>`${x.title} — ${x.note}`).join(' | ');
  let waits='not loaded';
  if(lastRides){waits=COASTERS.map(n=>{const m=findRide(n);if(!m)return null;
   return `${m.name}: ${m.is_open?m.wait_time+'min':'CLOSED'}`}).filter(Boolean).join(', ')}
@@ -472,16 +674,45 @@ function context(){
   .map(x=>`${x[0]} (${x[1]}★)`).join(', ')||'none yet';
  return `It is ${now.toLocaleString([],{weekday:'long',hour:'numeric',minute:'2-digit'})} at Cedar Point (June 2026 trip, 2 adults, no Fast Lane, hard preference: avoid lines over 30 minutes).
 Live waits: ${waits}.
-Weather now: ${wx}. Note: high wind closes TT2 first, then Millennium Force, Valravn, GateKeeper, WindSeeker. Lockers required (5 min) at Steel Vengeance, Maverick, TT2, Siren's Curse.
+Weather now: ${wx}. High wind closes TT2 first, then Millennium Force, Valravn, GateKeeper, WindSeeker. Lockers (5 min) at Steel Vengeance, Maverick, TT2, Siren's Curse.
 Remaining unchecked plan today: ${remaining||'plan complete'}.
-Their coaster ratings so far: ${ranks}.
-Dining plan restaurants: BackBeatQue, Farmhouse, Grand Pavilion, Hugo's, Coasters Drive-In, Happy Friar, Panda Express, Frontier Inn, Miss Keat's, Corral.
-Park geography: main gate (south) to Frontier Town (north) is a 20 min walk; minimize backtracking.`;
+Their coaster ratings: ${ranks}.
+Dining plan: BackBeatQue, Farmhouse, Grand Pavilion, Hugo's, Coasters Drive-In, Happy Friar, Panda Express, Frontier Inn, Miss Keat's, Corral.
+Geography: main gate (south) to Frontier Town (north) is a 20 min walk; minimize backtracking.
+Selected day key: "${selDay}". Shows (times vary, guest must confirm in official app): ${shows}.`;
+}
+function applyActions(txt){
+ const m=txt.match(/ACTIONS:\s*(\[.*\])/s);
+ if(!m)return '';
+ let acts;try{acts=JSON.parse(m[1])}catch(e){return 'Guide suggested changes but they could not be parsed.'}
+ const done=[];
+ acts.forEach(ac=>{
+  if(ac.a==='add'&&DAYS[ac.day]&&ac.title){
+   const it={id:'c'+Date.now()+Math.floor(Math.random()*999),t:ac.time||'',title:ac.title,
+    note:ac.note||'',cust:true,chips:[['zone','Added by guide']]};
+   if(ac.ride)it.ride=ac.ride;
+   const cat=CAT.find(c=>ac.title.toLowerCase().includes(c[0].toLowerCase().split(' —')[0].split(' (')[0].toLowerCase()));
+   if(cat&&cat[3])it.loc=cat[3];
+   S.custom[ac.day]=S.custom[ac.day]||[];S.custom[ac.day].push(it);
+   if(S.order[ac.day])S.order[ac.day].push(it.id);
+   done.push('added \u201c'+ac.title+'\u201d to '+ac.day.toUpperCase());
+  }
+  if(ac.a==='check'&&ac.id){S.checks[ac.id]=true;done.push('checked off '+ac.id)}
+  if(ac.a==='move'&&ac.id&&(ac.after||ac.before)){
+   const day=['sat','sun','mon'].find(dd=>dayItems(dd).some(x=>x.id===ac.id));
+   if(day){const ids=dayItems(day).map(x=>x.id||('s_'+x.sect));
+    const i=ids.indexOf(ac.id);if(i>=0){ids.splice(i,1);
+     const tgt=ids.indexOf(ac.after||ac.before);
+     if(tgt>=0){ids.splice(ac.after?tgt+1:tgt,0,ac.id);S.order[day]=ids;done.push('moved '+ac.id)}
+     else ids.splice(i,0,ac.id)}}}
+ });
+ save();renderPlan();renderRanks();
+ return done.length?('Schedule updated: '+done.join('; ')+'.'):'';
 }
 async function askAI(){
  const q=document.getElementById('ai-q').value.trim();
  const out=document.getElementById('ai-out');
- if(!S.key){out.style.display='block';out.textContent='Paste your Anthropic API key above first (stored only on this device).';return}
+ if(!S.key){out.style.display='block';out.textContent='Paste your Anthropic API key above first.';return}
  if(!q){out.style.display='block';out.textContent='Ask a question or tap a quick button.';return}
  out.style.display='block';out.textContent='Thinking…';
  if(!lastRides)try{await loadAll()}catch(e){}
@@ -489,17 +720,20 @@ async function askAI(){
   const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
    headers:{'Content-Type':'application/json','x-api-key':S.key,
     'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-   body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:700,
-    system:'You are a sharp, concise in-park guide at Cedar Point. Give a clear recommendation for the next 1-3 moves with brief reasoning. Respect the 30-minute wait preference and current weather. Plain text, no markdown headers.',
+   body:JSON.stringify({model:document.getElementById('ai-model').value,max_tokens:700,
+    system:'You are a sharp, concise in-park guide at Cedar Point. Give a clear recommendation for the next 1-3 moves with brief reasoning. Respect the 30-minute wait preference and current weather. Plain text, no markdown headers. If (and only if) the guest asks to change their plan — add something, remove/skip something, mark something done, or reorder — end your reply with a line containing exactly ACTIONS: followed by a JSON array on one line. Action shapes: {"a":"add","day":"sat|sun|mon","time":"7:00 PM","title":"...","note":"...","ride":"exact ride name or omit"} | {"a":"check","id":"<item id>"} | {"a":"move","id":"<id>","after":"<id>"} ("before" also allowed). Use real item ids shown in [brackets]. Keep the conversational part short; actions do the work.',
     messages:[{role:'user',content:context()+'\n\nGuest question: '+q}]})});
   const d=await r.json();
   if(d.error){out.textContent='API error: '+(d.error.message||JSON.stringify(d.error))}
-  else{out.textContent=(d.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('\n')}
+  else{let txt=(d.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('\n');
+   const summary=applyActions(txt);
+   txt=txt.replace(/ACTIONS:.*$/s,'').trim();
+   out.textContent=txt+(summary?'\n\n\u2726 '+summary:'')}
  }catch(e){out.textContent='Could not reach the Anthropic API — check signal and key.'}
 }
 
-/* ================= INIT ================= */
-renderAll();
+/* ====== INIT ====== */
+renderPlan();renderPark();renderRanks();
 
 </script>
 </body>
