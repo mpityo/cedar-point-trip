@@ -86,8 +86,11 @@ main{max-width:640px;margin:0 auto;padding:12px}
 details{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;margin-bottom:8px;font-size:.84rem}
 details summary{font-weight:600;cursor:pointer}
 details p{color:var(--muted);margin:8px 0 0}
-.stars{display:flex;gap:2px;font-size:1.05rem;line-height:1;cursor:pointer;user-select:none}
-.stars span{color:#D9D2C4}.stars span.on{color:#E8A413}
+.stars{display:flex;gap:6px;font-size:2rem;line-height:1;user-select:none;-webkit-tap-highlight-color:transparent}
+.stars .star{position:relative;width:1em;height:1em;cursor:pointer}
+.stars .base{color:#D9D2C4}
+.stars .fill{position:absolute;top:0;left:0;height:1em;color:#E8A413;overflow:hidden;white-space:nowrap}
+.stars .half{position:absolute;top:0;height:100%;width:50%;z-index:2}
 .addlink{width:100%;padding:12px;border:1.5px dashed var(--line);border-radius:var(--r);background:transparent;
   color:var(--muted);font-size:.86rem;font-weight:600;cursor:pointer;margin-bottom:8px}
 /* bottom sheet picker */
@@ -604,7 +607,10 @@ function applyWaits(){
   else{ch.textContent=m.wait_time+' min';ch.className='wait '+cls(m.wait_time)}});
 }
 function stars(name){const v=S.ratings[name]||0;let h='<div class="stars">';
- for(let i=1;i<=5;i++)h+=`<span class="${i<=v?'on':''}" data-star="${i}" data-ride="${name}">★</span>`;
+ for(let i=1;i<=5;i++){const w=v>=i?100:(v>=i-0.5?50:0);
+  h+=`<span class="star"><span class="base">★</span><span class="fill" style="width:${w}%">★</span>`+
+     `<span class="half" data-star="${i-0.5}" data-ride="${name}" style="left:0"></span>`+
+     `<span class="half" data-star="${i}" data-ride="${name}" style="left:50%"></span></span>`}
  return h+'</div>'}
 function drawBoard(){
  if(!lastRides)return;
@@ -621,7 +627,7 @@ function renderRanks(){
  if(!rated.length){el.innerHTML='<p class="meta">Rate coasters above to build your leaderboard.</p>';return}
  el.innerHTML=rated.map((x,i)=>
   `<div class="step"><div class="t-body"><div class="t-title">#${i+1} ${esc(x[0])}</div></div>
-  <span class="wait" style="background:#FBEFD2;color:#9A6A00">${'★'.repeat(x[1])}</span></div>`).join('');
+  <span class="wait" style="background:#FBEFD2;color:#9A6A00">${'★'.repeat(Math.floor(x[1]))+(x[1]%1?'½':'')}</span></div>`).join('');
 }
 
 /* ====== WEATHER ====== */
